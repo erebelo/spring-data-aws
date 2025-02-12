@@ -149,7 +149,7 @@ public class AddressServiceImpl implements AddressService {
 
             try {
                 // Extract recordId from the row
-                Datum recordIdDatum = row.data().get(0);
+                Datum recordIdDatum = row.data().getFirst();
                 recordId = recordIdDatum.varCharValue() != null ? recordIdDatum.varCharValue().trim() : "UNKNOWN";
             } catch (Exception ex) {
                 log.error("Failed to extract recordId from row: " + row, ex);
