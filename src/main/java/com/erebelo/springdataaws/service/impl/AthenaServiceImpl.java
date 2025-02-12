@@ -1,6 +1,6 @@
 package com.erebelo.springdataaws.service.impl;
 
-import com.erebelo.springdataaws.domain.dto.athena.AthenaQueryDto;
+import com.erebelo.springdataaws.dto.athena.AthenaQueryDto;
 import com.erebelo.springdataaws.exception.AthenaQueryException;
 import com.erebelo.springdataaws.service.AthenaService;
 import java.util.ArrayList;

@@ -3,7 +3,7 @@ package com.erebelo.springdataaws.controller;
 import static com.erebelo.springdataaws.constant.BusinessConstant.ADDRESSES_PATH;
 import static com.erebelo.springdataaws.constant.BusinessConstant.ADDRESSES_TRIGGER_PATH;
 
-import com.erebelo.springdataaws.domain.dto.athena.AthenaQueryDto;
+import com.erebelo.springdataaws.dto.athena.AthenaQueryDto;
 import com.erebelo.springdataaws.service.AddressService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

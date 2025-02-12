@@ -1,4 +1,4 @@
-package com.erebelo.springdataaws.domain.dto.athena;
+package com.erebelo.springdataaws.dto.athena;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

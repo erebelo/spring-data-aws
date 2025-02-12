@@ -1,4 +1,4 @@
-package com.erebelo.springdataaws.domain.dto.address;
+package com.erebelo.springdataaws.dto.address;
 
 import java.io.ByteArrayOutputStream;
 import lombok.AllArgsConstructor;
@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AddressContext {
+public class AddressContextDto {
 
     private String executionId;
     private int processedRecords;

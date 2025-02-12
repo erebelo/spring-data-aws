@@ -5,10 +5,10 @@ import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_CONT
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_KEY_NAME;
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_METADATA_TITLE;
 
-import com.erebelo.springdataaws.domain.dto.address.AddressBundleDto;
-import com.erebelo.springdataaws.domain.dto.address.AddressContext;
-import com.erebelo.springdataaws.domain.dto.address.AddressDto;
-import com.erebelo.springdataaws.domain.dto.athena.AthenaQueryDto;
+import com.erebelo.springdataaws.dto.address.AddressBundleDto;
+import com.erebelo.springdataaws.dto.address.AddressContextDto;
+import com.erebelo.springdataaws.dto.address.AddressDto;
+import com.erebelo.springdataaws.dto.athena.AthenaQueryDto;
 import com.erebelo.springdataaws.exception.BadRequestException;
 import com.erebelo.springdataaws.query.QueryMapping;
 import com.erebelo.springdataaws.service.AddressService;
@@ -28,6 +28,7 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.athena.model.Datum;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
@@ -49,7 +50,10 @@ public class AddressServiceImpl implements AddressService {
 
     public AthenaQueryDto addressTrigger() {
         log.info("Triggering the addresses table in Athena");
-        AddressContext context = new AddressContext(null, 0, new ByteArrayOutputStream());
+        AddressContextDto context = new AddressContextDto(null, 0, new ByteArrayOutputStream());
+
+        // Capture the current logging context
+        Map<String, String> loggingContext = MDC.getCopyOfContextMap();
 
         try {
             String query = QueryMapping.getQueryByName(ADDRESS_QUERY_NAME);
@@ -64,7 +68,18 @@ public class AddressServiceImpl implements AddressService {
                     .getQueryResults(context.getExecutionId());
 
             log.info("Starting to process address records");
-            CompletableFuture.runAsync(() -> processResults(paginatedResults, context), asyncTaskExecutor);
+            CompletableFuture.runAsync(() -> {
+                // Restore the logging context in the asynchronous task
+                if (loggingContext != null) {
+                    MDC.setContextMap(loggingContext);
+                }
+                try {
+                    processResults(paginatedResults, context);
+                } finally {
+                    // Clear the logging context after the task completes
+                    MDC.clear();
+                }
+            }, asyncTaskExecutor);
 
             return AthenaQueryDto.builder().executionId(context.getExecutionId()).build();
         } catch (Exception e) {
@@ -72,7 +87,7 @@ public class AddressServiceImpl implements AddressService {
         }
     }
 
-    public void processResults(Iterable<GetQueryResultsResponse> paginatedResults, AddressContext context) {
+    public void processResults(Iterable<GetQueryResultsResponse> paginatedResults, AddressContextDto context) {
         long startTime = System.nanoTime();
 
         // Process initial results synchronously to skip first row with csv headers
@@ -94,7 +109,7 @@ public class AddressServiceImpl implements AddressService {
                 duration / 1_000_000_000.0);
     }
 
-    private void processAndWriteRows(List<Row> rows, boolean isAsynchronous, AddressContext context) {
+    private void processAndWriteRows(List<Row> rows, boolean isAsynchronous, AddressContextDto context) {
         if (rows != null && !rows.isEmpty()) {
             List<Map<String, String>> addressMapList = isAsynchronous
                     ? processRowsAsynchronously(rows, context)
@@ -107,21 +122,20 @@ public class AddressServiceImpl implements AddressService {
         }
     }
 
-    private List<Map<String, String>> processRowsSynchronously(List<Row> rows, AddressContext context) {
+    private List<Map<String, String>> processRowsSynchronously(List<Row> rows, AddressContextDto context) {
         // Directly skip the first row with csv headers
-        return rows.subList(1, rows.size()).stream().map(row -> buildAddressMapFromRow(row, context)) // Exclude empty
-                                                                                                        // maps (failed
-                                                                                                        // rows)
+        // Exclude empty maps (failed rows)
+        return rows.subList(1, rows.size()).stream().map(row -> buildAddressMapFromRow(row, context))
                 .filter(addressMap -> !addressMap.isEmpty()).toList();
     }
 
-    private List<Map<String, String>> processRowsAsynchronously(List<Row> rows, AddressContext context) {
+    private List<Map<String, String>> processRowsAsynchronously(List<Row> rows, AddressContextDto context) {
         // Exclude empty maps (failed rows)
         return rows.parallelStream().map(row -> buildAddressMapFromRow(row, context))
                 .filter(addressMap -> !addressMap.isEmpty()).toList();
     }
 
-    private Map<String, String> buildAddressMapFromRow(Row row, AddressContext context) {
+    private Map<String, String> buildAddressMapFromRow(Row row, AddressContextDto context) {
         try {
             List<Datum> allData = row.data();
 
@@ -170,7 +184,7 @@ public class AddressServiceImpl implements AddressService {
         return addressMap;
     }
 
-    private void writeAddressesToCsv(List<Map<String, String>> addressMapList, AddressContext context) {
+    private void writeAddressesToCsv(List<Map<String, String>> addressMapList, AddressContextDto context) {
         // Collect all csv rows
         StringBuilder csvContent = new StringBuilder();
         for (Map<String, String> addressMap : addressMapList) {
@@ -189,7 +203,7 @@ public class AddressServiceImpl implements AddressService {
         return elementMap.values().stream().map(value -> value != null ? value : "").collect(Collectors.joining(","));
     }
 
-    private void uploadFileToS3(AddressContext context) {
+    private void uploadFileToS3(AddressContextDto context) {
         try {
             byte[] fileBytes = context.getByteArrayOutputStream().toByteArray();
             s3Service.multipartUpload(ADDRESS_S3_KEY_NAME, ADDRESS_S3_METADATA_TITLE, ADDRESS_S3_CONTENT_TYPE,
@@ -200,7 +214,7 @@ public class AddressServiceImpl implements AddressService {
         }
     }
 
-    private String extractAndLogError(String errorMsg, Exception e, AddressContext context) {
+    private String extractAndLogError(String errorMsg, Exception e, AddressContextDto context) {
         errorMsg = errorMsg + " Execution ID='" + context.getExecutionId() + "' Error Cause='"
                 + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()) + "'";
         log.error(errorMsg);
