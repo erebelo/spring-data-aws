@@ -24,7 +24,7 @@ public class AddressQuery {
                     -- addresstype HOME
                     MAX(CASE WHEN TRIM(addresstype) = 'HOME' THEN TRIM(addresstype) END) AS home_addresstype,
                     MAX(CASE WHEN TRIM(addresstype) = 'HOME' THEN TRIM(addressline1) END) AS home_addressline1,
-            		MAX(CASE WHEN TRIM(addresstype) = 'HOME' THEN TRIM(addressline2) END) AS home_addressline2,
+                    MAX(CASE WHEN TRIM(addresstype) = 'HOME' THEN TRIM(addressline2) END) AS home_addressline2,
                     MAX(CASE WHEN TRIM(addresstype) = 'HOME' THEN TRIM(city) END) AS home_city,
                     MAX(CASE WHEN TRIM(addresstype) = 'HOME' THEN TRIM(state) END) AS home_state,
                     MAX(CASE WHEN TRIM(addresstype) = 'HOME' THEN TRIM(country) END) AS home_country,
@@ -32,15 +32,15 @@ public class AddressQuery {
                     -- addresstype WORK
                     MAX(CASE WHEN TRIM(addresstype) = 'WORK' THEN TRIM(addresstype) END) AS work_addresstype,
                     MAX(CASE WHEN TRIM(addresstype) = 'WORK' THEN TRIM(addressline1) END) AS work_addressline1,
-            		MAX(CASE WHEN TRIM(addresstype) = 'WORK' THEN TRIM(addressline2) END) AS work_addressline2,
+                    MAX(CASE WHEN TRIM(addresstype) = 'WORK' THEN TRIM(addressline2) END) AS work_addressline2,
                     MAX(CASE WHEN TRIM(addresstype) = 'WORK' THEN TRIM(city) END) AS work_city,
                     MAX(CASE WHEN TRIM(addresstype) = 'WORK' THEN TRIM(state) END) AS work_state,
                     MAX(CASE WHEN TRIM(addresstype) = 'WORK' THEN TRIM(country) END) AS work_country,
                     MAX(CASE WHEN TRIM(addresstype) = 'WORK' THEN TRIM(zipcode) END) AS work_zipcode,
-            		-- addresstype OTHER
+                    -- addresstype OTHER
                     MAX(CASE WHEN TRIM(addresstype) = 'OTHER' THEN TRIM(addresstype) END) AS other_addresstype,
                     MAX(CASE WHEN TRIM(addresstype) = 'OTHER' THEN TRIM(addressline1) END) AS other_addressline1,
-            		MAX(CASE WHEN TRIM(addresstype) = 'OTHER' THEN TRIM(addressline2) END) AS other_addressline2,
+                    MAX(CASE WHEN TRIM(addresstype) = 'OTHER' THEN TRIM(addressline2) END) AS other_addressline2,
                     MAX(CASE WHEN TRIM(addresstype) = 'OTHER' THEN TRIM(city) END) AS other_city,
                     MAX(CASE WHEN TRIM(addresstype) = 'OTHER' THEN TRIM(state) END) AS other_state,
                     MAX(CASE WHEN TRIM(addresstype) = 'OTHER' THEN TRIM(country) END) AS other_country,

@@ -90,7 +90,7 @@ public class AddressServiceImpl implements AddressService {
     public void processResults(Iterable<GetQueryResultsResponse> paginatedResults, AddressContextDto context) {
         long startTime = System.nanoTime();
 
-        // Process initial results synchronously to skip first row with csv headers
+        // Process initial results synchronously to include csv headers in the first row
         Iterator<GetQueryResultsResponse> iterator = paginatedResults.iterator();
         if (iterator.hasNext()) {
             processAndWriteRows(iterator.next().resultSet().rows(), false, context);
@@ -123,9 +123,8 @@ public class AddressServiceImpl implements AddressService {
     }
 
     private List<Map<String, String>> processRowsSynchronously(List<Row> rows, AddressContextDto context) {
-        // Directly skip the first row with csv headers
-        // Exclude empty maps (failed rows)
-        return rows.subList(1, rows.size()).stream().map(row -> buildAddressMapFromRow(row, context))
+        // Directly process rows with csv headers in the first row
+        return rows.stream().map(row -> buildAddressMapFromRow(row, context)) // Exclude empty maps (failed rows)
                 .filter(addressMap -> !addressMap.isEmpty()).toList();
     }
 
