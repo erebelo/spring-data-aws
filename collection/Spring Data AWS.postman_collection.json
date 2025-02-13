@@ -31,6 +31,36 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Addresses",
+			"item": [
+				{
+					"name": "Trigger Address Feed",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8080/spring-data-aws/addresses/feed/trigger",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"spring-data-aws",
+								"addresses",
+								"feed",
+								"trigger"
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	]
 }
