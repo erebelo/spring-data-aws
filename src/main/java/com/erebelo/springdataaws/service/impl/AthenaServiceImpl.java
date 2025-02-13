@@ -71,16 +71,15 @@ public class AthenaServiceImpl implements AthenaService {
 
         GetQueryExecutionResponse getQueryExecutionResponse;
         boolean isQueryStillRunning = true;
-        // TODO: add a timeout to the while loop
+
         while (isQueryStillRunning) {
             getQueryExecutionResponse = athenaClient.getQueryExecution(getQueryExecutionRequest);
             String queryState = getQueryExecutionResponse.queryExecution().status().state().toString();
-            // TODO: change to switch
+
             if (queryState.equals(QueryExecutionState.FAILED.toString())) {
-                log.error("The Athena query failed to run: {}",
-                        getQueryExecutionResponse.queryExecution().status().stateChangeReason());
-                throw new AthenaQueryException("The Athena query failed to run: "
-                        + getQueryExecutionResponse.queryExecution().status().stateChangeReason());
+                String errorCause = getQueryExecutionResponse.queryExecution().status().stateChangeReason();
+                log.error("The Athena query failed to run: {}", errorCause);
+                throw new AthenaQueryException("The Athena query failed to run: " + errorCause);
             } else if (queryState.equals(QueryExecutionState.CANCELLED.toString())) {
                 log.error("The Athena query was cancelled");
                 throw new AthenaQueryException("The Athena query was cancelled");
@@ -88,12 +87,13 @@ public class AthenaServiceImpl implements AthenaService {
                 isQueryStillRunning = false;
             } else {
                 try {
+                    // Sleep an amount of time before retrying again.
                     Thread.sleep(300);
                 } catch (InterruptedException e) {
                     log.info("The thread was interrupted: {}", e.getMessage());
                 }
             }
-            log.info("The current status of the query is: " + queryState);
+            log.info("The current status of the query is: {}", queryState);
         }
     }
 

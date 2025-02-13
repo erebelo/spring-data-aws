@@ -45,7 +45,7 @@ public class AddressBundleDto {
     @JsonProperty("work_addressline1")
     private String workAddressLine1;
 
-    @JsonProperty("work_addressline1")
+    @JsonProperty("work_addressline2")
     private String workAddressLine2;
 
     @JsonProperty("work_city")
