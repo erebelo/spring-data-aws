@@ -1,4 +1,4 @@
-package com.erebelo.springdataaws.exception;
+package com.erebelo.springdataaws.exception.model;
 
 public class AthenaQueryException extends RuntimeException {
 

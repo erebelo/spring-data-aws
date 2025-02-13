@@ -1,6 +1,6 @@
 package com.erebelo.springdataaws.service;
 
-import com.erebelo.springdataaws.dto.athena.AthenaQueryDto;
+import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
 import java.util.List;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 

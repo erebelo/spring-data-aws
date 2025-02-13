@@ -1,4 +1,4 @@
-package com.erebelo.springdataaws.dto.address;
+package com.erebelo.springdataaws.domain.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;

@@ -5,11 +5,10 @@ import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_CONT
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_KEY_NAME;
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_METADATA_TITLE;
 
-import com.erebelo.springdataaws.dto.address.AddressBundleDto;
-import com.erebelo.springdataaws.dto.address.AddressContextDto;
-import com.erebelo.springdataaws.dto.address.AddressDto;
-import com.erebelo.springdataaws.dto.athena.AthenaQueryDto;
-import com.erebelo.springdataaws.exception.BadRequestException;
+import com.erebelo.springdataaws.domain.dto.AddressBundleDto;
+import com.erebelo.springdataaws.domain.dto.AddressContextDto;
+import com.erebelo.springdataaws.domain.dto.AddressDto;
+import com.erebelo.springdataaws.exception.model.BadRequestException;
 import com.erebelo.springdataaws.query.QueryMapping;
 import com.erebelo.springdataaws.service.AddressService;
 import com.erebelo.springdataaws.service.AthenaService;
@@ -48,17 +47,15 @@ public class AddressServiceImpl implements AddressService {
     private static final List<String> ADDRESS_BUNDLE_FIELD_NAMES = Arrays
             .stream(AddressBundleDto.class.getDeclaredFields()).map(field -> field.getName().toLowerCase()).toList();
 
-    public AthenaQueryDto addressTrigger() {
-        log.info("Triggering the addresses table in Athena");
+    public String addressFeedTrigger() {
+        log.info("Triggering the addresses table feed in Athena");
         AddressContextDto context = new AddressContextDto(null, 0, new ByteArrayOutputStream());
-
-        // Capture the current logging context
-        Map<String, String> loggingContext = MDC.getCopyOfContextMap();
+        Map<String, String> loggingContext = MDC.getCopyOfContextMap(); // Capture the current logging context
 
         try {
             String query = QueryMapping.getQueryByName(ADDRESS_QUERY_NAME);
             context.setExecutionId(athenaService.submitAthenaQuery(query).getExecutionId());
-            log.info("Executing join query among address feed tables. Execution ID='{}'", context.getExecutionId());
+            log.info("Executing query to feed addresses tables. Execution ID='{}'", context.getExecutionId());
 
             athenaService.waitForQueryToComplete(context.getExecutionId());
             log.info("Query execution completed");
@@ -81,9 +78,9 @@ public class AddressServiceImpl implements AddressService {
                 }
             }, asyncTaskExecutor);
 
-            return AthenaQueryDto.builder().executionId(context.getExecutionId()).build();
+            return context.getExecutionId();
         } catch (Exception e) {
-            throw new BadRequestException(extractAndLogError("Failed to trigger address feed.", e, context), e);
+            throw new BadRequestException(extractAndLogError("Failed to trigger address feed", e, context), e);
         }
     }
 
@@ -154,7 +151,7 @@ public class AddressServiceImpl implements AddressService {
                 log.error("Failed to extract recordId from row: " + row, ex);
             }
 
-            extractAndLogError("Error processing row (skipping it) with recordId=" + recordId + ".", e, context);
+            extractAndLogError("Error processing row (skipping it) with recordId=" + recordId, e, context);
             return new LinkedHashMap<>();
         }
     }
@@ -194,7 +191,7 @@ public class AddressServiceImpl implements AddressService {
             writer.write(csvContent.toString());
             context.setProcessedRecords(context.getProcessedRecords() + addressMapList.size());
         } catch (IOException e) {
-            throw new BadRequestException(extractAndLogError("Failed to write address data to file.", e, context), e);
+            throw new BadRequestException(extractAndLogError("Failed to write address data to file", e, context), e);
         }
     }
 
@@ -209,13 +206,13 @@ public class AddressServiceImpl implements AddressService {
                     fileBytes);
         } catch (Exception e) {
             throw new BadRequestException(
-                    extractAndLogError("Failed to upload in-memory address file to S3.", e, context), e);
+                    extractAndLogError("Failed to upload in-memory address file to S3", e, context), e);
         }
     }
 
     private String extractAndLogError(String errorMsg, Exception e, AddressContextDto context) {
-        errorMsg = errorMsg + " Execution ID='" + context.getExecutionId() + "' Error Cause='"
-                + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()) + "'";
+        errorMsg = "Error: '" + errorMsg + "'. Execution ID: '" + context.getExecutionId() + "'. Root Cause: '"
+                + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage()) + "'.";
         log.error(errorMsg);
         return errorMsg;
     }

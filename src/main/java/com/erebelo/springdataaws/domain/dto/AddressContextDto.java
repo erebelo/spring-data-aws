@@ -1,4 +1,4 @@
-package com.erebelo.springdataaws.dto.address;
+package com.erebelo.springdataaws.domain.dto;
 
 import java.io.ByteArrayOutputStream;
 import lombok.AllArgsConstructor;
