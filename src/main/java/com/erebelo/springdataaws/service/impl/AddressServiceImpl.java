@@ -84,7 +84,7 @@ public class AddressServiceImpl implements AddressService {
         }
     }
 
-    public void processResults(Iterable<GetQueryResultsResponse> paginatedResults, AddressContextDto context) {
+    private void processResults(Iterable<GetQueryResultsResponse> paginatedResults, AddressContextDto context) {
         long startTime = System.nanoTime();
 
         // Process initial results synchronously to include csv headers in the first row

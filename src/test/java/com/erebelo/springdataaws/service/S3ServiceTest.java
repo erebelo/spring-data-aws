@@ -1,6 +1,19 @@
 package com.erebelo.springdataaws.service;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
+
 import com.erebelo.springdataaws.service.impl.S3ServiceImpl;
+import java.io.IOException;
+import java.util.Map;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,20 +32,6 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartResponse;
-
-import java.io.IOException;
-import java.util.Map;
-import java.util.function.Consumer;
-
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class S3ServiceTest {
@@ -53,7 +52,7 @@ class S3ServiceTest {
         String keyName = "test-key";
         String metadataTitle = "test-title";
         String contentType = "test-content-type";
-        byte[] fileData = "test-data" .getBytes();
+        byte[] fileData = "test-data".getBytes();
 
         assertDoesNotThrow(() -> service.singlePartUpload(keyName, metadataTitle, contentType, fileData));
 
@@ -65,7 +64,7 @@ class S3ServiceTest {
         String keyName = "test-key";
         String metadataTitle = "test-title";
         String contentType = "test-content-type";
-        byte[] fileData = "test-data" .getBytes();
+        byte[] fileData = "test-data".getBytes();
 
         given(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .willThrow(S3Exception.builder().message("Test S3 exception").build());
@@ -83,25 +82,21 @@ class S3ServiceTest {
         String keyName = "test-key";
         String metadataTitle = "test-title";
         String contentType = "test-content-type";
-        byte[] fileData = "test-data" .getBytes();
+        byte[] fileData = "test-data".getBytes();
 
         CreateMultipartUploadResponse createMultipartUploadResponse = CreateMultipartUploadResponse.builder()
-                .uploadId("test-upload-id")
-                .build();
+                .uploadId("test-upload-id").build();
         given(s3Client.createMultipartUpload(Mockito.<Consumer<CreateMultipartUploadRequest.Builder>>any()))
                 .willReturn(createMultipartUploadResponse);
 
-        UploadPartResponse uploadPartResponse = UploadPartResponse.builder()
-                .eTag("test-etag")
-                .build();
-        given(s3Client.uploadPart(any(UploadPartRequest.class), any(RequestBody.class)))
-                .willReturn(uploadPartResponse);
+        UploadPartResponse uploadPartResponse = UploadPartResponse.builder().eTag("test-etag").build();
+        given(s3Client.uploadPart(any(UploadPartRequest.class), any(RequestBody.class))).willReturn(uploadPartResponse);
 
         assertDoesNotThrow(() -> service.multipartUpload(keyName, metadataTitle, contentType, fileData));
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<Consumer<CreateMultipartUploadRequest.Builder>> createMultipartCaptor =
-                ArgumentCaptor.forClass(Consumer.class);
+        ArgumentCaptor<Consumer<CreateMultipartUploadRequest.Builder>> createMultipartCaptor = ArgumentCaptor
+                .forClass(Consumer.class);
         verify(s3Client).createMultipartUpload(createMultipartCaptor.capture());
 
         CreateMultipartUploadRequest.Builder capturedBuilder = CreateMultipartUploadRequest.builder();
@@ -114,8 +109,8 @@ class S3ServiceTest {
         assertEquals(contentType, request.contentType());
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<Consumer<CompleteMultipartUploadRequest.Builder>> completeMultipartCaptor =
-                ArgumentCaptor.forClass((Class<Consumer<CompleteMultipartUploadRequest.Builder>>) (Class<?>) Consumer.class);
+        ArgumentCaptor<Consumer<CompleteMultipartUploadRequest.Builder>> completeMultipartCaptor = ArgumentCaptor
+                .forClass((Class<Consumer<CompleteMultipartUploadRequest.Builder>>) (Class<?>) Consumer.class);
         verify(s3Client).completeMultipartUpload(completeMultipartCaptor.capture());
 
         CompleteMultipartUploadRequest.Builder completeBuilder = CompleteMultipartUploadRequest.builder();
@@ -133,7 +128,7 @@ class S3ServiceTest {
         String keyName = "test-key";
         String metadataTitle = "test-title";
         String contentType = "test-content-type";
-        byte[] fileData = "test-data" .getBytes();
+        byte[] fileData = "test-data".getBytes();
 
         given(s3Client.createMultipartUpload(Mockito.<Consumer<CreateMultipartUploadRequest.Builder>>any()))
                 .willThrow(S3Exception.builder().message("Test S3 exception").build());
@@ -142,7 +137,8 @@ class S3ServiceTest {
                 .isThrownBy(() -> service.multipartUpload(keyName, metadataTitle, contentType, fileData))
                 .withMessage("Test S3 exception");
 
-        verify(s3Client, atLeastOnce()).createMultipartUpload(Mockito.<Consumer<CreateMultipartUploadRequest.Builder>>any());
+        verify(s3Client, atLeastOnce())
+                .createMultipartUpload(Mockito.<Consumer<CreateMultipartUploadRequest.Builder>>any());
     }
 
     @Test
@@ -150,24 +146,23 @@ class S3ServiceTest {
         String keyName = "test-key";
         String metadataTitle = "test-title";
         String contentType = "test-content-type";
-        byte[] fileData = "test-data" .getBytes();
+        byte[] fileData = "test-data".getBytes();
 
         CreateMultipartUploadResponse createMultipartUploadResponse = CreateMultipartUploadResponse.builder()
-                .uploadId("test-upload-id")
-                .build();
+                .uploadId("test-upload-id").build();
         given(s3Client.createMultipartUpload(Mockito.<Consumer<CreateMultipartUploadRequest.Builder>>any()))
                 .willReturn(createMultipartUploadResponse);
 
-        given(s3Client.uploadPart(any(UploadPartRequest.class), any(RequestBody.class)))
-                .willAnswer(invocation -> {
-                    throw new IOException("Test IO exception");
-                });
+        given(s3Client.uploadPart(any(UploadPartRequest.class), any(RequestBody.class))).willAnswer(invocation -> {
+            throw new IOException("Test IO exception");
+        });
 
         assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> service.multipartUpload(keyName, metadataTitle, contentType, fileData))
                 .withMessage("Error reading file data to upload to bucket");
 
-        verify(s3Client, atLeastOnce()).createMultipartUpload(Mockito.<Consumer<CreateMultipartUploadRequest.Builder>>any());
+        verify(s3Client, atLeastOnce())
+                .createMultipartUpload(Mockito.<Consumer<CreateMultipartUploadRequest.Builder>>any());
         verify(s3Client, atLeastOnce()).uploadPart(any(UploadPartRequest.class), any(RequestBody.class));
     }
 }

@@ -2,6 +2,7 @@ package com.erebelo.springdataaws.controller;
 
 import static com.erebelo.springdataaws.constant.BusinessConstant.ADDRESSES_FEED_PATH;
 import static com.erebelo.springdataaws.constant.BusinessConstant.ADDRESSES_PATH;
+import static com.erebelo.springdataaws.mock.AddressMock.EXECUTION_ID;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -29,12 +30,11 @@ class AddressControllerTest {
 
     @Test
     void testAddressFeedTriggerSuccessful() throws Exception {
-        String executionId = "3e0135ac-d582-4cb2-b671-f74c945d13e2";
-        given(service.addressFeedTrigger()).willReturn(executionId);
+        given(service.addressFeedTrigger()).willReturn(EXECUTION_ID);
 
         mockMvc.perform(post(ADDRESSES_PATH + ADDRESSES_FEED_PATH).accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value(200)).andExpect(jsonPath("$.body")
-                        .value("Address feed execution created successfully. Execution ID: '" + executionId + "'"));
+                        .value("Address feed execution created successfully. Execution ID: '" + EXECUTION_ID + "'"));
 
         verify(service).addressFeedTrigger();
     }
