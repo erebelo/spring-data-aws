@@ -8,14 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willAnswer;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.erebelo.springdataaws.domain.dto.AddressContextDto;
 import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
@@ -46,7 +46,7 @@ import software.amazon.awssdk.services.athena.model.Row;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @ExtendWith(MockitoExtension.class)
-class AddressServiceImplTest {
+class AddressServiceTest {
 
     @InjectMocks
     private AddressServiceImpl addressService;
@@ -62,24 +62,20 @@ class AddressServiceImplTest {
 
     @Test
     void testAddressFeedTriggerWith2KRecordsSuccessful() throws InterruptedException {
-        when(athenaService.submitAthenaQuery(anyString())).thenReturn(AthenaQueryDto.builder().executionId(EXECUTION_ID).build());
-        doNothing().when(athenaService).waitForQueryToComplete(anyString());
-        when(athenaService.getQueryResults(anyString()))
-                .thenReturn(List.of(
-                        GetQueryResultsResponse.builder()
-                                .resultSet(ResultSet.builder().rows(getRowsChunk1()).build())
-                                .build(),
-                        GetQueryResultsResponse.builder()
-                                .resultSet(ResultSet.builder().rows(getRowsChunk2()).build())
-                                .build()
-                ));
+        given(athenaService.submitAthenaQuery(anyString()))
+                .willReturn(AthenaQueryDto.builder().executionId(EXECUTION_ID).build());
+        willDoNothing().given(athenaService).waitForQueryToComplete(anyString());
+        given(athenaService.getQueryResults(anyString())).willReturn(List.of(
+                GetQueryResultsResponse.builder().resultSet(ResultSet.builder().rows(getRowsChunk1()).build()).build(),
+                GetQueryResultsResponse.builder().resultSet(ResultSet.builder().rows(getRowsChunk2()).build())
+                        .build()));
 
-        doAnswer((Answer<Void>) invocation -> {
+        willAnswer((Answer<Void>) invocation -> {
             ((Runnable) invocation.getArgument(0)).run();
             return null;
-        }).when(asyncTaskExecutor).execute(any(Runnable.class));
+        }).given(asyncTaskExecutor).execute(any(Runnable.class));
 
-        doNothing().when(s3Service).multipartUpload(anyString(), anyString(), anyString(), any(byte[].class));
+        willDoNothing().given(s3Service).multipartUpload(anyString(), anyString(), anyString(), any(byte[].class));
 
         Map<String, String> loggingContext = Map.of("key", "value");
         try (MockedStatic<MDC> mockedMdc = mockStatic(MDC.class)) {
@@ -101,12 +97,12 @@ class AddressServiceImplTest {
 
     @Test
     void testAddressFeedTriggerSubmitAthenaQueryFailure() throws InterruptedException {
-        when(athenaService.submitAthenaQuery(anyString())).thenThrow(new AthenaQueryException("Athena query failed"));
+        given(athenaService.submitAthenaQuery(anyString())).willThrow(new AthenaQueryException("Athena query failed"));
 
         BadRequestException exception = assertThrows(BadRequestException.class,
                 () -> addressService.addressFeedTrigger());
-        assertThat(exception.getMessage()).isEqualTo("Error: 'Failed to trigger address feed'. " +
-                "Execution ID: 'null'. Root Cause: 'Athena query failed'.");
+        assertThat(exception.getMessage()).isEqualTo("Error: 'Failed to trigger address feed'. "
+                + "Execution ID: 'null'. Root Cause: 'Athena query failed'.");
 
         verify(athenaService).submitAthenaQuery(anyString());
         verify(athenaService, never()).waitForQueryToComplete(anyString());
@@ -117,13 +113,15 @@ class AddressServiceImplTest {
 
     @Test
     void testAddressFeedTriggerWaitForQueryFailure() throws InterruptedException {
-        when(athenaService.submitAthenaQuery(anyString())).thenReturn(AthenaQueryDto.builder().executionId(EXECUTION_ID).build());
-        doThrow(new AthenaQueryException("Athena query failed")).when(athenaService).waitForQueryToComplete(anyString());
+        given(athenaService.submitAthenaQuery(anyString()))
+                .willReturn(AthenaQueryDto.builder().executionId(EXECUTION_ID).build());
+        willThrow(new AthenaQueryException("Athena query failed")).given(athenaService)
+                .waitForQueryToComplete(anyString());
 
         BadRequestException exception = assertThrows(BadRequestException.class,
                 () -> addressService.addressFeedTrigger());
-        assertThat(exception.getMessage()).isEqualTo("Error: 'Failed to trigger address feed'. " +
-                "Execution ID: '" + EXECUTION_ID + "'. Root Cause: 'Athena query failed'.");
+        assertThat(exception.getMessage()).isEqualTo("Error: 'Failed to trigger address feed'. " + "Execution ID: '"
+                + EXECUTION_ID + "'. Root Cause: 'Athena query failed'.");
 
         verify(athenaService).submitAthenaQuery(anyString());
         verify(athenaService).waitForQueryToComplete(anyString());
@@ -134,15 +132,16 @@ class AddressServiceImplTest {
 
     @Test
     void testAddressFeedTriggerGetQueryResultsFailure() throws InterruptedException {
-        when(athenaService.submitAthenaQuery(anyString())).thenReturn(AthenaQueryDto.builder().executionId(EXECUTION_ID).build());
-        doNothing().when(athenaService).waitForQueryToComplete(anyString());
-        when(athenaService.getQueryResults(anyString()))
-                .thenThrow(new AthenaQueryException("Failed to get query results"));
+        given(athenaService.submitAthenaQuery(anyString()))
+                .willReturn(AthenaQueryDto.builder().executionId(EXECUTION_ID).build());
+        willDoNothing().given(athenaService).waitForQueryToComplete(anyString());
+        given(athenaService.getQueryResults(anyString()))
+                .willThrow(new AthenaQueryException("Failed to get query results"));
 
         BadRequestException exception = assertThrows(BadRequestException.class,
                 () -> addressService.addressFeedTrigger());
-        assertThat(exception.getMessage()).isEqualTo("Error: 'Failed to trigger address feed'. " +
-                "Execution ID: '" + EXECUTION_ID + "'. Root Cause: 'Failed to get query results'.");
+        assertThat(exception.getMessage()).isEqualTo("Error: 'Failed to trigger address feed'. " + "Execution ID: '"
+                + EXECUTION_ID + "'. Root Cause: 'Failed to get query results'.");
 
         verify(athenaService).submitAthenaQuery(anyString());
         verify(athenaService).waitForQueryToComplete(anyString());
@@ -157,10 +156,10 @@ class AddressServiceImplTest {
 
         // Mock the first Datum object to return a valid recordId
         Datum recordIdDatumMock = mock(Datum.class);
-        when(recordIdDatumMock.varCharValue()).thenReturn("1");
+        given(recordIdDatumMock.varCharValue()).willReturn("1");
 
-        when(rowMock.data()).thenThrow(new RuntimeException("Simulated exception")) // First call: throw exception
-                .thenReturn(List.of(recordIdDatumMock)); // Second call: return valid data
+        given(rowMock.data()).willThrow(new RuntimeException("Simulated exception")) // First call: throw exception
+                .willReturn(List.of(recordIdDatumMock)); // Second call: return valid data
 
         // Use reflection to access the private method
         Method buildAddressMapFromRowMethod = AddressServiceImpl.class.getDeclaredMethod("buildAddressMapFromRow",
@@ -177,7 +176,7 @@ class AddressServiceImplTest {
     @Test
     void testBuildAddressMapFromRowCatchFailure() throws Exception {
         Row rowMock = mock(Row.class);
-        when(rowMock.data()).thenThrow(new RuntimeException("Simulated exception"));
+        given(rowMock.data()).willThrow(new RuntimeException("Simulated exception"));
 
         // Use reflection to access the private method
         Method buildAddressMapFromRowMethod = AddressServiceImpl.class.getDeclaredMethod("buildAddressMapFromRow",
@@ -196,7 +195,8 @@ class AddressServiceImplTest {
         List<Map<String, String>> addressMapList = List.of(Map.of("field1", "value1", "field2", "value2"));
 
         ByteArrayOutputStream outputStreamMock = mock(ByteArrayOutputStream.class);
-        doThrow(new IOException("Failed to write")).when(outputStreamMock).write(any(byte[].class), anyInt(), anyInt());
+        willThrow(new IOException("Failed to write")).given(outputStreamMock).write(any(byte[].class), anyInt(),
+                anyInt());
 
         AddressContextDto context = new AddressContextDto(EXECUTION_ID, 0, new ByteArrayOutputStream());
         context.setByteArrayOutputStream(outputStreamMock);
@@ -218,8 +218,8 @@ class AddressServiceImplTest {
 
     @Test
     void testS3UploadFailure() throws NoSuchMethodException {
-        doThrow(S3Exception.builder().message("S3 upload failed").build()).when(s3Service).multipartUpload(anyString(),
-                anyString(), anyString(), any(byte[].class));
+        willThrow(S3Exception.builder().message("S3 upload failed").build()).given(s3Service)
+                .multipartUpload(anyString(), anyString(), anyString(), any(byte[].class));
 
         // Use reflection to access the private method
         Method uploadFileToS3 = AddressServiceImpl.class.getDeclaredMethod("uploadFileToS3", AddressContextDto.class);
