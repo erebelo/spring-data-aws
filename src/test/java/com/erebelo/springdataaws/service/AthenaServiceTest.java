@@ -1,7 +1,7 @@
 package com.erebelo.springdataaws.service;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.BDDAssertions.then;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -64,13 +64,13 @@ class AthenaServiceTest {
         AthenaQueryDto athenaQueryDto = service.submitAthenaQuery("SELECT * FROM acct_v5");
 
         assertEquals("12345", athenaQueryDto.getExecutionId());
+
         verify(athenaClient).startQueryExecution(any(StartQueryExecutionRequest.class));
     }
 
     @Test
     void testSubmitAthenaQueryThrowsException() {
         String queryString = "SELECT * FROM test_table";
-
         given(athenaClient.startQueryExecution(any(StartQueryExecutionRequest.class)))
                 .willThrow(AthenaException.builder().message("Test exception").build());
 
@@ -92,14 +92,12 @@ class AthenaServiceTest {
     }
 
     @Test
-    void testWaitForQueryToComplete() {
+    void testWaitForQueryToComplete() throws InterruptedException {
         String queryExecutionId = "12345";
-
         GetQueryExecutionResponse getQueryExecutionResponse = GetQueryExecutionResponse.builder()
                 .queryExecution(QueryExecution.builder()
                         .status(QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build()).build())
                 .build();
-
         given(athenaClient.getQueryExecution(any(GetQueryExecutionRequest.class)))
                 .willReturn(getQueryExecutionResponse);
 
@@ -111,12 +109,10 @@ class AthenaServiceTest {
     @Test
     void testWaitForQueryToCompleteThrowsException() {
         String queryExecutionId = "12345";
-
         GetQueryExecutionResponse getQueryExecutionResponse = GetQueryExecutionResponse.builder()
                 .queryExecution(QueryExecution.builder().status(QueryExecutionStatus.builder()
                         .state(QueryExecutionState.FAILED).stateChangeReason("Test failure reason").build()).build())
                 .build();
-
         given(athenaClient.getQueryExecution(any(GetQueryExecutionRequest.class)))
                 .willReturn(getQueryExecutionResponse);
 
@@ -130,7 +126,6 @@ class AthenaServiceTest {
     @Test
     void waitForQueryToCompleteCancelledState() {
         String queryExecutionId = "12345";
-
         GetQueryExecutionResponse getQueryExecutionResponse = GetQueryExecutionResponse.builder()
                 .queryExecution(QueryExecution.builder().status(QueryExecutionStatus.builder()
                         .state(QueryExecutionState.CANCELLED).stateChangeReason("Test cancellation reason").build())
@@ -143,18 +138,17 @@ class AthenaServiceTest {
         assertThatExceptionOfType(AthenaQueryException.class)
                 .isThrownBy(() -> service.waitForQueryToComplete(queryExecutionId))
                 .withMessage("The Athena query was cancelled");
+
         verify(athenaClient, atLeastOnce()).getQueryExecution(any(GetQueryExecutionRequest.class));
     }
 
     @Test
-    void waitForQueryToCompleteRetriesOnRunningState() {
+    void waitForQueryToCompleteRetriesOnRunningState() throws InterruptedException {
         String queryExecutionId = "12345";
-
         GetQueryExecutionResponse runningResponse = GetQueryExecutionResponse.builder()
                 .queryExecution(QueryExecution.builder()
                         .status(QueryExecutionStatus.builder().state(QueryExecutionState.RUNNING).build()).build())
                 .build();
-
         GetQueryExecutionResponse succeededResponse = GetQueryExecutionResponse.builder()
                 .queryExecution(QueryExecution.builder()
                         .status(QueryExecutionStatus.builder().state(QueryExecutionState.SUCCEEDED).build()).build())
@@ -171,22 +165,20 @@ class AthenaServiceTest {
     @Test
     void testGetQueryResults() {
         String queryExecutionId = "12345";
-
         GetQueryResultsIterable getQueryResultsIterable = mock(GetQueryResultsIterable.class);
-
         given(athenaClient.getQueryResultsPaginator(any(GetQueryResultsRequest.class)))
                 .willReturn(getQueryResultsIterable);
 
         Iterable<GetQueryResultsResponse> result = service.getQueryResults(queryExecutionId);
 
-        then(result).isEqualTo(getQueryResultsIterable);
+        assertThat(result).isEqualTo(getQueryResultsIterable);
+
         verify(athenaClient).getQueryResultsPaginator(any(GetQueryResultsRequest.class));
     }
 
     @Test
     void testGetQueryResultsThrowsException() {
         String queryExecutionId = "12345";
-
         given(athenaClient.getQueryResultsPaginator(any(GetQueryResultsRequest.class)))
                 .willThrow(AthenaException.builder().message("Test exception").build());
 
@@ -207,7 +199,6 @@ class AthenaServiceTest {
 
         GetQueryResultsResponse response = GetQueryResultsResponse.builder()
                 .resultSet(ResultSet.builder().rows(rows).build()).build();
-
         GetQueryResultsIterable iterable = mock(GetQueryResultsIterable.class);
         given(iterable.iterator()).willReturn(List.of(response).iterator());
 
@@ -235,7 +226,6 @@ class AthenaServiceTest {
     @Test
     void testGetQueryResultsAsStringsThrowsException() {
         String queryExecutionId = "12345";
-
         given(athenaClient.getQueryResultsPaginator(any(GetQueryResultsRequest.class)))
                 .willThrow(AthenaException.builder().message("Test exception").build());
 

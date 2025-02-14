@@ -8,7 +8,7 @@ public interface AthenaService {
 
     AthenaQueryDto submitAthenaQuery(String queryString);
 
-    void waitForQueryToComplete(String queryExecutionId);
+    void waitForQueryToComplete(String queryExecutionId) throws InterruptedException;
 
     Iterable<GetQueryResultsResponse> getQueryResults(String queryExecutionId);
 

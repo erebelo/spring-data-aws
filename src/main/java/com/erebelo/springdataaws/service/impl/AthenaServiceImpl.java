@@ -65,7 +65,7 @@ public class AthenaServiceImpl implements AthenaService {
     }
 
     @Override
-    public void waitForQueryToComplete(String queryExecutionId) {
+    public void waitForQueryToComplete(String queryExecutionId) throws InterruptedException {
         GetQueryExecutionRequest getQueryExecutionRequest = GetQueryExecutionRequest.builder()
                 .queryExecutionId(queryExecutionId).build();
 
@@ -86,12 +86,8 @@ public class AthenaServiceImpl implements AthenaService {
             } else if (queryState.equals(QueryExecutionState.SUCCEEDED.toString())) {
                 isQueryStillRunning = false;
             } else {
-                try {
-                    // Sleep an amount of time before retrying again.
-                    Thread.sleep(300);
-                } catch (InterruptedException e) {
-                    log.info("The thread was interrupted: {}", e.getMessage());
-                }
+                // Sleep an amount of time before retrying again.
+                Thread.sleep(300);
             }
             log.info("The current status of the query is: {}", queryState);
         }
