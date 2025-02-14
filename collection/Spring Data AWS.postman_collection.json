@@ -44,7 +44,7 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8080/spring-data-aws/addresses/feed/trigger",
+							"raw": "http://localhost:8080/spring-data-aws/addresses/feed",
 							"protocol": "http",
 							"host": [
 								"localhost"
@@ -53,8 +53,7 @@
 							"path": [
 								"spring-data-aws",
 								"addresses",
-								"feed",
-								"trigger"
+								"feed"
 							]
 						}
 					},

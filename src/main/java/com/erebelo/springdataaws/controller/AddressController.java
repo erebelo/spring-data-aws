@@ -1,6 +1,6 @@
 package com.erebelo.springdataaws.controller;
 
-import static com.erebelo.springdataaws.constant.BusinessConstant.ADDRESSES_FEED_TRIGGER_PATH;
+import static com.erebelo.springdataaws.constant.BusinessConstant.ADDRESSES_FEED_PATH;
 import static com.erebelo.springdataaws.constant.BusinessConstant.ADDRESSES_PATH;
 
 import com.erebelo.springdataaws.domain.response.AddressResponse;
@@ -23,9 +23,9 @@ public class AddressController {
     private final AddressService service;
 
     @ResponseStatus(HttpStatus.OK)
-    @PostMapping(value = ADDRESSES_FEED_TRIGGER_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = ADDRESSES_FEED_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
     public AddressResponse addressFeedTrigger() {
-        log.info("POST {}", ADDRESSES_PATH + ADDRESSES_FEED_TRIGGER_PATH);
+        log.info("POST {}", ADDRESSES_PATH + ADDRESSES_FEED_PATH);
         return new AddressResponse(HttpStatus.OK.value(), "Address feed execution created successfully. "
                 + "Execution ID: '" + service.addressFeedTrigger() + "'");
     }

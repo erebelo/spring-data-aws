@@ -6,6 +6,6 @@ import lombok.experimental.UtilityClass;
 public class BusinessConstant {
 
     public static final String ADDRESSES_PATH = "/addresses";
-    public static final String ADDRESSES_FEED_TRIGGER_PATH = "/feed/trigger";
+    public static final String ADDRESSES_FEED_PATH = "/feed";
 
 }
