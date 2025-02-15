@@ -4,6 +4,7 @@ import static com.erebelo.springdataaws.mock.AddressMock.EXECUTION_ID;
 import static com.erebelo.springdataaws.mock.AddressMock.getRowsChunk1;
 import static com.erebelo.springdataaws.mock.AddressMock.getRowsChunk2;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -81,9 +82,9 @@ class AddressServiceTest {
         try (MockedStatic<MDC> mockedMdc = mockStatic(MDC.class)) {
             mockedMdc.when(MDC::getCopyOfContextMap).thenReturn(loggingContext);
 
-            String result = addressService.addressFeedTrigger();
+            String response = addressService.addressFeedTrigger();
 
-            assertThat(result).isEqualTo(EXECUTION_ID);
+            assertEquals(EXECUTION_ID, response);
 
             mockedMdc.verify(() -> MDC.setContextMap(loggingContext));
             mockedMdc.verify(MDC::clear);
@@ -101,8 +102,9 @@ class AddressServiceTest {
 
         BadRequestException exception = assertThrows(BadRequestException.class,
                 () -> addressService.addressFeedTrigger());
-        assertThat(exception.getMessage()).isEqualTo("Error: 'Failed to trigger address feed'. "
-                + "Execution ID: 'null'. Root Cause: 'Athena query failed'.");
+
+        assertEquals("Error: 'Failed to trigger address feed'. Execution ID: 'null'. Root Cause: 'Athena query "
+                + "failed'.", exception.getMessage());
 
         verify(athenaService).submitAthenaQuery(anyString());
         verify(athenaService, never()).waitForQueryToComplete(anyString());
@@ -120,8 +122,9 @@ class AddressServiceTest {
 
         BadRequestException exception = assertThrows(BadRequestException.class,
                 () -> addressService.addressFeedTrigger());
-        assertThat(exception.getMessage()).isEqualTo("Error: 'Failed to trigger address feed'. " + "Execution ID: '"
-                + EXECUTION_ID + "'. Root Cause: 'Athena query failed'.");
+
+        assertEquals("Error: 'Failed to trigger address feed'. " + "Execution ID: '" + EXECUTION_ID
+                + "'. Root Cause: 'Athena query failed'.", exception.getMessage());
 
         verify(athenaService).submitAthenaQuery(anyString());
         verify(athenaService).waitForQueryToComplete(anyString());
@@ -140,8 +143,9 @@ class AddressServiceTest {
 
         BadRequestException exception = assertThrows(BadRequestException.class,
                 () -> addressService.addressFeedTrigger());
-        assertThat(exception.getMessage()).isEqualTo("Error: 'Failed to trigger address feed'. " + "Execution ID: '"
-                + EXECUTION_ID + "'. Root Cause: 'Failed to get query results'.");
+
+        assertEquals("Error: 'Failed to trigger address feed'. " + "Execution ID: '" + EXECUTION_ID
+                + "'. Root Cause: 'Failed to get query results'.", exception.getMessage());
 
         verify(athenaService).submitAthenaQuery(anyString());
         verify(athenaService).waitForQueryToComplete(anyString());
@@ -166,10 +170,10 @@ class AddressServiceTest {
                 Row.class, AddressContextDto.class);
         buildAddressMapFromRowMethod.setAccessible(true);
 
-        Object result = buildAddressMapFromRowMethod.invoke(addressService, rowMock,
+        Object response = buildAddressMapFromRowMethod.invoke(addressService, rowMock,
                 new AddressContextDto(EXECUTION_ID, 0, new ByteArrayOutputStream()));
 
-        assertThat(result).isInstanceOf(Map.class).asInstanceOf(InstanceOfAssertFactories.MAP)
+        assertThat(response).isInstanceOf(Map.class).asInstanceOf(InstanceOfAssertFactories.MAP)
                 .isInstanceOf(LinkedHashMap.class).isEmpty();
     }
 
@@ -183,10 +187,10 @@ class AddressServiceTest {
                 Row.class, AddressContextDto.class);
         buildAddressMapFromRowMethod.setAccessible(true);
 
-        Object result = buildAddressMapFromRowMethod.invoke(addressService, rowMock,
+        Object response = buildAddressMapFromRowMethod.invoke(addressService, rowMock,
                 new AddressContextDto(EXECUTION_ID, 0, new ByteArrayOutputStream()));
 
-        assertThat(result).isInstanceOf(Map.class).asInstanceOf(InstanceOfAssertFactories.MAP)
+        assertThat(response).isInstanceOf(Map.class).asInstanceOf(InstanceOfAssertFactories.MAP)
                 .isInstanceOf(LinkedHashMap.class).isEmpty();
     }
 
@@ -212,8 +216,8 @@ class AddressServiceTest {
         assertThat(exception).isInstanceOf(InvocationTargetException.class);
         Throwable rootCause = ((InvocationTargetException) exception).getTargetException();
         assertThat(rootCause).isInstanceOf(BadRequestException.class);
-        assertThat(rootCause.getMessage()).isEqualTo("Error: 'Failed to write address data to file'. "
-                + "Execution ID: '" + EXECUTION_ID + "'. Root Cause: 'Failed to write'.");
+        assertEquals("Error: 'Failed to write address data to file'. Execution ID: '" + EXECUTION_ID
+                + "'. Root Cause: 'Failed to write'.", rootCause.getMessage());
     }
 
     @Test
@@ -231,7 +235,7 @@ class AddressServiceTest {
         assertThat(exception).isInstanceOf(InvocationTargetException.class);
         Throwable rootCause = ((InvocationTargetException) exception).getTargetException();
         assertThat(rootCause).isInstanceOf(BadRequestException.class);
-        assertThat(rootCause.getMessage()).isEqualTo("Error: 'Failed to upload in-memory address file to S3'. "
-                + "Execution ID: '" + EXECUTION_ID + "'. Root Cause: 'S3 upload failed'.");
+        assertEquals("Error: 'Failed to upload in-memory address file to S3'. " + "Execution ID: '" + EXECUTION_ID
+                + "'. Root Cause: 'S3 upload failed'.", rootCause.getMessage());
     }
 }

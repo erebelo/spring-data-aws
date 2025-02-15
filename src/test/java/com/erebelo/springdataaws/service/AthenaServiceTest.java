@@ -1,6 +1,5 @@
 package com.erebelo.springdataaws.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -169,9 +168,9 @@ class AthenaServiceTest {
         given(athenaClient.getQueryResultsPaginator(any(GetQueryResultsRequest.class)))
                 .willReturn(getQueryResultsIterable);
 
-        Iterable<GetQueryResultsResponse> result = service.getQueryResults(queryExecutionId);
+        Iterable<GetQueryResultsResponse> response = service.getQueryResults(queryExecutionId);
 
-        assertThat(result).isEqualTo(getQueryResultsIterable);
+        assertEquals(getQueryResultsIterable, response);
 
         verify(athenaClient).getQueryResultsPaginator(any(GetQueryResultsRequest.class));
     }
