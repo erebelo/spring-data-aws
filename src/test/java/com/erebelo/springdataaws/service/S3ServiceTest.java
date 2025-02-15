@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 
 import com.erebelo.springdataaws.service.impl.S3ServiceImpl;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +49,7 @@ class S3ServiceTest {
     }
 
     @Test
-    void testSinglePartUploadSuccess() {
+    void testSinglePartUploadSuccessful() {
         String keyName = "test-key";
         String metadataTitle = "test-title";
         String contentType = "test-content-type";
@@ -77,7 +78,7 @@ class S3ServiceTest {
     }
 
     @Test
-    void testMultipartUploadSuccess() {
+    void testMultipartUploadSuccessful() {
         String bucketName = "test-bucket";
         String keyName = "test-key";
         String metadataTitle = "test-title";
@@ -142,7 +143,7 @@ class S3ServiceTest {
     }
 
     @Test
-    void testMultipartUploadThrowsIOException() {
+    void testMultipartUploadThrowsUncheckedIOException() {
         String keyName = "test-key";
         String metadataTitle = "test-title";
         String contentType = "test-content-type";
@@ -157,7 +158,7 @@ class S3ServiceTest {
             throw new IOException("Test IO exception");
         });
 
-        assertThatExceptionOfType(RuntimeException.class)
+        assertThatExceptionOfType(UncheckedIOException.class)
                 .isThrownBy(() -> service.multipartUpload(keyName, metadataTitle, contentType, fileData))
                 .withMessage("Error reading file data to upload to bucket");
 

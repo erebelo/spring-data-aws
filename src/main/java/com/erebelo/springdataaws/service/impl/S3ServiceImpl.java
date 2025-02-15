@@ -3,6 +3,7 @@ package com.erebelo.springdataaws.service.impl;
 import com.erebelo.springdataaws.service.S3Service;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,7 +85,7 @@ public class S3ServiceImpl implements S3Service {
                 }
             } catch (IOException e) {
                 log.error("Error reading file data to upload to bucket: " + e.getMessage());
-                throw new RuntimeException("Error reading file data to upload to bucket", e);
+                throw new UncheckedIOException("Error reading file data to upload to bucket", e);
             }
 
             // Complete the multipart upload

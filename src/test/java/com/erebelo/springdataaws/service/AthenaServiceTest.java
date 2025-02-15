@@ -188,7 +188,7 @@ class AthenaServiceTest {
     }
 
     @Test
-    void testGetQueryResultsAsStringsSuccess() {
+    void testGetQueryResultsAsStringsSuccessful() {
         String queryExecutionId = "test-query-id";
 
         Datum datum = Datum.builder().varCharValue("data1").build();

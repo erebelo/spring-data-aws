@@ -1,9 +1,9 @@
 package com.erebelo.springdataaws.mock;
 
 import com.erebelo.springdataaws.domain.dto.AddressBundleDto;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import lombok.experimental.UtilityClass;
 import software.amazon.awssdk.services.athena.model.Datum;
@@ -15,8 +15,9 @@ public class AddressMock {
     public static final String EXECUTION_ID = "3e0135ac-d582-4cb2-b671-f74c945d13e2";
 
     public static List<Row> getRowsChunk1() {
-        List<Row> rows = getRows(999);
+        List<Row> rows = new ArrayList<>();
         rows.addFirst(getHeaderRow());
+        rows.addAll(getRows(999));
         return rows;
     }
 
@@ -25,7 +26,7 @@ public class AddressMock {
     }
 
     private static List<Row> getRows(int end) {
-        return IntStream.range(0, end).mapToObj(i -> getRow()).collect(Collectors.toList());
+        return IntStream.range(0, end).mapToObj(i -> getRow()).toList();
     }
 
     private static Row getRow() {

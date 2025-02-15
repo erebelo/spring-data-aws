@@ -6,7 +6,9 @@ import static com.erebelo.springdataaws.query.AddressQuery.ADDRESS_QUERY;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 public class QueryMapping {
 
     private static final Map<String, String> QUERIES;
