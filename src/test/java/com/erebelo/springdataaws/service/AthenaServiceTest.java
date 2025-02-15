@@ -232,11 +232,6 @@ class AthenaServiceTest {
                 .isThrownBy(() -> service.getQueryResultsAsStrings(queryExecutionId))
                 .withMessage("Failed to get query results");
 
-        assertThatExceptionOfType(AthenaQueryException.class)
-                .isThrownBy(() -> service.getQueryResultsAsStrings(queryExecutionId))
-                .withMessage("Failed to get query results2");
-
-
         verify(athenaClient).getQueryResultsPaginator(any(GetQueryResultsRequest.class));
     }
 
