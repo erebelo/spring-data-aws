@@ -1,6 +1,5 @@
 package com.erebelo.springdataaws.service;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -73,8 +72,10 @@ class AthenaServiceTest {
         given(athenaClient.startQueryExecution(any(StartQueryExecutionRequest.class)))
                 .willThrow(AthenaException.builder().message("Test exception").build());
 
-        assertThatExceptionOfType(AthenaQueryException.class).isThrownBy(() -> service.submitAthenaQuery(queryString))
-                .withMessage("Failed to execute Athena query");
+        AthenaQueryException exception = assertThrows(AthenaQueryException.class,
+                () -> service.submitAthenaQuery(queryString));
+
+        assertEquals("Failed to execute Athena query", exception.getMessage());
 
         verify(athenaClient).startQueryExecution(any(StartQueryExecutionRequest.class));
     }
@@ -83,9 +84,10 @@ class AthenaServiceTest {
     void submitAthenaQueryThrowsExceptionWhenResponseIsNull() {
         given(athenaClient.startQueryExecution(any(StartQueryExecutionRequest.class))).willReturn(null);
 
-        assertThatExceptionOfType(AthenaQueryException.class)
-                .isThrownBy(() -> service.submitAthenaQuery("SELECT * FROM test_table"))
-                .withMessage("Failed to execute Athena query: No execution Id returned");
+        AthenaQueryException exception = assertThrows(AthenaQueryException.class,
+                () -> service.submitAthenaQuery("SELECT * FROM test_table"));
+
+        assertEquals("Failed to execute Athena query: No execution Id returned", exception.getMessage());
 
         verify(athenaClient).startQueryExecution(any(StartQueryExecutionRequest.class));
     }
@@ -115,9 +117,10 @@ class AthenaServiceTest {
         given(athenaClient.getQueryExecution(any(GetQueryExecutionRequest.class)))
                 .willReturn(getQueryExecutionResponse);
 
-        assertThatExceptionOfType(RuntimeException.class)
-                .isThrownBy(() -> service.waitForQueryToComplete(queryExecutionId))
-                .withMessage("The Athena query failed to run: Test failure reason");
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> service.waitForQueryToComplete(queryExecutionId));
+
+        assertEquals("The Athena query failed to run: Test failure reason", exception.getMessage());
 
         verify(athenaClient, atLeastOnce()).getQueryExecution(any(GetQueryExecutionRequest.class));
     }
@@ -130,13 +133,13 @@ class AthenaServiceTest {
                         .state(QueryExecutionState.CANCELLED).stateChangeReason("Test cancellation reason").build())
                         .build())
                 .build();
-
         given(athenaClient.getQueryExecution(any(GetQueryExecutionRequest.class)))
                 .willReturn(getQueryExecutionResponse);
 
-        assertThatExceptionOfType(AthenaQueryException.class)
-                .isThrownBy(() -> service.waitForQueryToComplete(queryExecutionId))
-                .withMessage("The Athena query was cancelled");
+        AthenaQueryException exception = assertThrows(AthenaQueryException.class,
+                () -> service.waitForQueryToComplete(queryExecutionId));
+
+        assertEquals("The Athena query was cancelled", exception.getMessage());
 
         verify(athenaClient, atLeastOnce()).getQueryExecution(any(GetQueryExecutionRequest.class));
     }
@@ -181,8 +184,10 @@ class AthenaServiceTest {
         given(athenaClient.getQueryResultsPaginator(any(GetQueryResultsRequest.class)))
                 .willThrow(AthenaException.builder().message("Test exception").build());
 
-        assertThatExceptionOfType(AthenaQueryException.class)
-                .isThrownBy(() -> service.getQueryResults(queryExecutionId)).withMessage("Failed to get query results");
+        AthenaQueryException exception = assertThrows(AthenaQueryException.class,
+                () -> service.getQueryResults(queryExecutionId));
+
+        assertEquals("Failed to get query results", exception.getMessage());
 
         verify(athenaClient).getQueryResultsPaginator(any(GetQueryResultsRequest.class));
     }
@@ -228,9 +233,10 @@ class AthenaServiceTest {
         given(athenaClient.getQueryResultsPaginator(any(GetQueryResultsRequest.class)))
                 .willThrow(AthenaException.builder().message("Test exception").build());
 
-        assertThatExceptionOfType(AthenaQueryException.class)
-                .isThrownBy(() -> service.getQueryResultsAsStrings(queryExecutionId))
-                .withMessage("Failed to get query results");
+        AthenaQueryException exception = assertThrows(AthenaQueryException.class,
+                () -> service.getQueryResultsAsStrings(queryExecutionId));
+
+        assertEquals("Failed to get query results", exception.getMessage());
 
         verify(athenaClient).getQueryResultsPaginator(any(GetQueryResultsRequest.class));
     }
@@ -241,8 +247,9 @@ class AthenaServiceTest {
         given(service.getQueryResults(queryExecutionId))
                 .willThrow(new AthenaQueryException("Failed to execute Athena query"));
 
-        assertThatExceptionOfType(AthenaQueryException.class)
-                .isThrownBy(() -> service.getQueryResultsAsStrings(queryExecutionId))
-                .withMessage("Failed to execute Athena query");
+        AthenaQueryException exception = assertThrows(AthenaQueryException.class,
+                () -> service.getQueryResultsAsStrings(queryExecutionId));
+
+        assertEquals("Failed to execute Athena query", exception.getMessage());
     }
 }

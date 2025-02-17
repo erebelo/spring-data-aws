@@ -1,10 +1,10 @@
 package com.erebelo.springdataaws.service;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
@@ -70,9 +70,10 @@ class S3ServiceTest {
         given(s3Client.putObject(any(PutObjectRequest.class), any(RequestBody.class)))
                 .willThrow(S3Exception.builder().message("Test S3 exception").build());
 
-        assertThatExceptionOfType(S3Exception.class)
-                .isThrownBy(() -> service.singlePartUpload(keyName, metadataTitle, contentType, fileData))
-                .withMessage("Test S3 exception");
+        S3Exception exception = assertThrows(S3Exception.class,
+                () -> service.singlePartUpload(keyName, metadataTitle, contentType, fileData));
+
+        assertEquals("Test S3 exception", exception.getMessage());
 
         verify(s3Client, atLeastOnce()).putObject(any(PutObjectRequest.class), any(RequestBody.class));
     }
@@ -134,9 +135,10 @@ class S3ServiceTest {
         given(s3Client.createMultipartUpload(Mockito.<Consumer<CreateMultipartUploadRequest.Builder>>any()))
                 .willThrow(S3Exception.builder().message("Test S3 exception").build());
 
-        assertThatExceptionOfType(S3Exception.class)
-                .isThrownBy(() -> service.multipartUpload(keyName, metadataTitle, contentType, fileData))
-                .withMessage("Test S3 exception");
+        S3Exception exception = assertThrows(S3Exception.class,
+                () -> service.multipartUpload(keyName, metadataTitle, contentType, fileData));
+
+        assertEquals("Test S3 exception", exception.getMessage());
 
         verify(s3Client, atLeastOnce())
                 .createMultipartUpload(Mockito.<Consumer<CreateMultipartUploadRequest.Builder>>any());
@@ -158,9 +160,10 @@ class S3ServiceTest {
             throw new IOException("Test IO exception");
         });
 
-        assertThatExceptionOfType(UncheckedIOException.class)
-                .isThrownBy(() -> service.multipartUpload(keyName, metadataTitle, contentType, fileData))
-                .withMessage("Error reading file data to upload to bucket");
+        UncheckedIOException exception = assertThrows(UncheckedIOException.class,
+                () -> service.multipartUpload(keyName, metadataTitle, contentType, fileData));
+
+        assertEquals("Error reading file data to upload to bucket", exception.getMessage());
 
         verify(s3Client, atLeastOnce())
                 .createMultipartUpload(Mockito.<Consumer<CreateMultipartUploadRequest.Builder>>any());
