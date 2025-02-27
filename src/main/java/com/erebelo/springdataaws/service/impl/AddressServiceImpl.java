@@ -1,5 +1,6 @@
 package com.erebelo.springdataaws.service.impl;
 
+import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_ATHENA_BATCH_SIZE;
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_QUERY_NAME;
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_CONTENT_TYPE;
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_KEY_NAME;
@@ -13,11 +14,14 @@ import com.erebelo.springdataaws.query.QueryMapping;
 import com.erebelo.springdataaws.service.AddressService;
 import com.erebelo.springdataaws.service.AthenaService;
 import com.erebelo.springdataaws.service.S3Service;
+import com.erebelo.springdataaws.util.ParallelStreamContext;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -79,6 +83,10 @@ public class AddressServiceImpl implements AddressService {
             }, asyncTaskExecutor);
 
             return context.getExecutionId();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BadRequestException(
+                    extractAndLogError("Thread was interrupted while triggering address feed", e, context), e);
         } catch (Exception e) {
             throw new BadRequestException(extractAndLogError("Failed to trigger address feed", e, context), e);
         }
@@ -86,6 +94,7 @@ public class AddressServiceImpl implements AddressService {
 
     private void processResults(Iterable<GetQueryResultsResponse> paginatedResults, AddressContextDto context) {
         long startTime = System.nanoTime();
+        List<Row> batchRows = new ArrayList<>();
 
         // Process initial results synchronously to include csv headers in the first row
         Iterator<GetQueryResultsResponse> iterator = paginatedResults.iterator();
@@ -93,17 +102,22 @@ public class AddressServiceImpl implements AddressService {
             processAndWriteRows(iterator.next().resultSet().rows(), false, context);
         }
 
-        // Process all remaining results asynchronously
+        // Process all remaining results asynchronously in batch
+        // since maximum number of Athena query results (rows) is 1000
         while (iterator.hasNext()) {
-            processAndWriteRows(iterator.next().resultSet().rows(), true, context);
+            batchRows.addAll(iterator.next().resultSet().rows());
+
+            if (batchRows.size() >= ADDRESS_ATHENA_BATCH_SIZE || !iterator.hasNext()) {
+                processAndWriteRows(batchRows, true, context);
+                batchRows.clear();
+            }
         }
 
         log.info("Uploading in-memory address csv file to S3 bucket");
         uploadFileToS3(context);
 
-        long duration = System.nanoTime() - startTime;
-        log.info("{} address records successfully processed in {} seconds", context.getProcessedRecords(),
-                duration / 1_000_000_000.0);
+        long duration = Math.round((System.nanoTime() - startTime) / 1_000_000_000.0);
+        log.info("{} address records successfully processed in {} seconds", context.getProcessedRecords(), duration);
     }
 
     private void processAndWriteRows(List<Row> rows, boolean isAsynchronous, AddressContextDto context) {
@@ -126,9 +140,18 @@ public class AddressServiceImpl implements AddressService {
     }
 
     private List<Map<String, String>> processRowsAsynchronously(List<Row> rows, AddressContextDto context) {
-        // Exclude empty maps (failed rows)
-        return rows.parallelStream().map(row -> buildAddressMapFromRow(row, context))
-                .filter(addressMap -> !addressMap.isEmpty()).toList();
+        List<Map<String, String>> addressMapList = Collections.synchronizedList(new ArrayList<>());
+
+        ParallelStreamContext.forEach(rows.stream(), row -> {
+            Map<String, String> addressMap = buildAddressMapFromRow(row, context);
+
+            // Exclude empty maps (failed rows)
+            if (!addressMap.isEmpty()) {
+                addressMapList.add(addressMap);
+            }
+        });
+
+        return addressMapList;
     }
 
     private Map<String, String> buildAddressMapFromRow(Row row, AddressContextDto context) {

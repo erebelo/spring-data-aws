@@ -117,14 +117,16 @@ class AddressServiceTest {
     void testAddressFeedTriggerWaitForQueryFailure() throws InterruptedException {
         given(athenaService.submitAthenaQuery(anyString()))
                 .willReturn(AthenaQueryDto.builder().executionId(EXECUTION_ID).build());
-        willThrow(new AthenaQueryException("Athena query failed")).given(athenaService)
+        willThrow(new InterruptedException("Thread interrupted")).given(athenaService)
                 .waitForQueryToComplete(anyString());
 
         BadRequestException exception = assertThrows(BadRequestException.class,
                 () -> addressService.addressFeedTrigger());
 
-        assertEquals("Error: 'Failed to trigger address feed'. " + "Execution ID: '" + EXECUTION_ID
-                + "'. Root Cause: 'Athena query failed'.", exception.getMessage());
+        assertEquals("Error: 'Thread was interrupted while triggering address feed'. Execution ID: '" + EXECUTION_ID
+                + "'. Root Cause: 'Thread interrupted'.", exception.getMessage());
+
+        assertThat(Thread.currentThread().isInterrupted()).isTrue();
 
         verify(athenaService).submitAthenaQuery(anyString());
         verify(athenaService).waitForQueryToComplete(anyString());
