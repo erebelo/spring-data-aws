@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.erebelo</groupId>
         <artifactId>spring-common-parent</artifactId>
-        <version>1.0.1-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
 
     <artifactId>spring-data-aws</artifactId>
@@ -15,6 +15,13 @@
     <description>Java project using Spring Boot to interact with AWS services, including Athena for querying data and S3
         for storage
     </description>
+
+    <repositories>
+        <repository>
+            <id>github-spring-common-parent</id>
+            <url>https://maven.pkg.github.com/erebelo/spring-common-parent</url>
+        </repository>
+    </repositories>
 
     <properties>
         <java.version>21</java.version>
