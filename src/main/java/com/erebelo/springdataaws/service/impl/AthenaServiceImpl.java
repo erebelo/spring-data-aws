@@ -3,12 +3,8 @@ package com.erebelo.springdataaws.service.impl;
 import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
 import com.erebelo.springdataaws.exception.model.AthenaQueryException;
 import com.erebelo.springdataaws.service.AthenaService;
-import java.util.ArrayList;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.athena.AthenaClient;
 import software.amazon.awssdk.services.athena.model.AthenaException;
 import software.amazon.awssdk.services.athena.model.Datum;
@@ -24,18 +20,16 @@ import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 import software.amazon.awssdk.services.athena.paginators.GetQueryResultsIterable;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Slf4j
-@Service
 @RequiredArgsConstructor
 public class AthenaServiceImpl implements AthenaService {
 
     private final AthenaClient athenaClient;
-
-    @Value("${athena.database.name}")
-    private String athenaDBName;
-
-    @Value("${s3.output.bucket.url}")
-    private String outputBucketUrl;
+    private final String athenaDBName;
+    private final String outputBucketUrl;
 
     @Override
     public AthenaQueryDto submitAthenaQuery(String queryString) {

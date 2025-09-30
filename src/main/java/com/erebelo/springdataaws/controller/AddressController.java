@@ -3,7 +3,7 @@ package com.erebelo.springdataaws.controller;
 import static com.erebelo.springdataaws.constant.BusinessConstant.ADDRESSES_FEED_PATH;
 import static com.erebelo.springdataaws.constant.BusinessConstant.ADDRESSES_PATH;
 
-import com.erebelo.springdataaws.domain.response.AddressResponse;
+import com.erebelo.springdataaws.domain.response.BaseResponse;
 import com.erebelo.springdataaws.service.AddressService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +24,9 @@ public class AddressController {
 
     @ResponseStatus(HttpStatus.OK)
     @PostMapping(value = ADDRESSES_FEED_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
-    public AddressResponse addressFeedTrigger() {
+    public BaseResponse addressFeedTrigger() {
         log.info("POST {}", ADDRESSES_PATH + ADDRESSES_FEED_PATH);
-        return new AddressResponse(HttpStatus.OK.value(), "Address feed execution created successfully. "
+        return new BaseResponse(HttpStatus.OK.value(), "Address feed execution created successfully. "
                 + "Execution ID: '" + service.addressFeedTrigger() + "'");
     }
 }

@@ -7,18 +7,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.athena.AthenaClient;
 
-class AthenaClientConfigurationTest {
+class AthenaConfigurationTest {
 
     @Test
     void testAthenaClientSuccessful() {
-        AthenaClientConfiguration provider = new AthenaClientConfiguration();
+        AthenaConfiguration provider = new AthenaConfiguration();
         AthenaClient client = provider.athenaClient();
         assertNotNull(client, "The AthenaClient should not be null");
     }
 
     @Test
     void testAthenaClientFailure() {
-        AthenaClientConfiguration provider = new AthenaClientConfiguration() {
+        AthenaConfiguration provider = new AthenaConfiguration() {
             @Override
             public AthenaClient athenaClient() {
                 throw new RuntimeException("Failed to create AthenaClient");
