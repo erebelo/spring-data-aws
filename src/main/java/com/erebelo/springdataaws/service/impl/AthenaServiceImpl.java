@@ -3,6 +3,14 @@ package com.erebelo.springdataaws.service.impl;
 import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
 import com.erebelo.springdataaws.exception.model.AthenaQueryException;
 import com.erebelo.springdataaws.service.AthenaService;
+import com.erebelo.springdataaws.util.ObjectMapperUtil;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.athena.AthenaClient;
@@ -19,9 +27,6 @@ import software.amazon.awssdk.services.athena.model.Row;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
 import software.amazon.awssdk.services.athena.paginators.GetQueryResultsIterable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -121,5 +126,36 @@ public class AthenaServiceImpl implements AthenaService {
             log.info(e.getMessage());
             throw new AthenaQueryException(e.getMessage(), e);
         }
+    }
+
+    /*
+     * Maps list of Athena Row objects into a list of instances of the given class
+     * type.
+     */
+    public <T> List<T> mapRowsToClass(List<Row> rows, Class<T> clazz) {
+        if (rows == null || rows.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> fieldNames = Arrays.stream(clazz.getDeclaredFields()).map(Field::getName).map(String::toLowerCase)
+                .toList();
+
+        List<T> result = new ArrayList<>(rows.size());
+
+        for (Row row : rows) {
+            List<Datum> allData = row.data();
+            Map<String, String> fieldMap = new LinkedHashMap<>();
+
+            for (int i = 0; i < fieldNames.size(); i++) {
+                String key = fieldNames.get(i);
+                String value = (i < allData.size() && allData.get(i) != null) ? allData.get(i).varCharValue() : null;
+                fieldMap.put(key, value);
+            }
+
+            T instance = ObjectMapperUtil.objectMapper.convertValue(fieldMap, clazz);
+            result.add(instance);
+        }
+
+        return result;
     }
 }

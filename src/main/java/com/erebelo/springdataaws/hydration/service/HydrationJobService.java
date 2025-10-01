@@ -1,13 +1,16 @@
 package com.erebelo.springdataaws.hydration.service;
 
-import com.erebelo.springdataaws.hydration.domain.dto.HydrationJobDto;
+import com.erebelo.springdataaws.hydration.domain.enumeration.HydrationStatus;
+import com.erebelo.springdataaws.hydration.domain.model.HydrationJob;
 
 public interface HydrationJobService {
 
-    boolean existsProcessingJob();
+    HydrationJob getCurrentJob();
 
-    HydrationJobDto initNewJob();
+    boolean existsInitiatedOrProcessingJob();
 
-    HydrationJobDto getCurrentJob();
+    HydrationJob initNewJob();
+
+    void updateJobStatus(HydrationJob job, HydrationStatus status);
 
 }
