@@ -4,12 +4,15 @@ import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
 import com.erebelo.springdataaws.exception.model.AthenaQueryException;
 import com.erebelo.springdataaws.service.AthenaService;
 import com.erebelo.springdataaws.util.ObjectMapperUtil;
+import com.fasterxml.jackson.databind.JavaType;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.athena.AthenaClient;
@@ -129,24 +132,37 @@ public class AthenaServiceImpl implements AthenaService {
 
     /*
      * Maps Athena Row objects to a list of instances of the given class, based on
-     * the provided column names in the same order as returned by Athena.
+     * the provided order of column names returned by Athena.
      */
-    public <T> List<T> mapRowsToClass(String[] columnNames, List<Row> rows, Class<T> clazz) {
+    public <T> List<T> mapRowsToClass(String[] athenaColumnOrder, List<Row> rows, Class<T> clazz) {
         if (rows == null || rows.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<String> normalizedColumns = Arrays.stream(columnNames).map(String::toLowerCase).toList();
+        List<String> normalizedColumns = Arrays.stream(athenaColumnOrder).toList();
         List<T> result = new ArrayList<>(rows.size());
+
+        Map<String, Field> fieldTypes = Arrays.stream(clazz.getDeclaredFields())
+                .collect(Collectors.toMap(Field::getName, f -> f));
 
         for (Row row : rows) {
             List<Datum> allData = row.data();
-            Map<String, String> fieldMap = new LinkedHashMap<>();
+            Map<String, Object> fieldMap = new LinkedHashMap<>();
 
             for (int i = 0; i < normalizedColumns.size(); i++) {
                 String key = normalizedColumns.get(i);
-                String value = (i < allData.size() && allData.get(i) != null) ? allData.get(i).varCharValue() : null;
-                fieldMap.put(key, value);
+                String rawValue = (i < allData.size() && allData.get(i) != null) ? allData.get(i).varCharValue() : null;
+
+                Field field = fieldTypes.get(key);
+                if (field != null && rawValue != null) {
+                    JavaType javaType = ObjectMapperUtil.objectMapper.getTypeFactory()
+                            .constructType(field.getGenericType());
+
+                    Object converted = ObjectMapperUtil.objectMapper.convertValue(rawValue, javaType);
+                    fieldMap.put(key, converted);
+                } else {
+                    fieldMap.put(key, rawValue);
+                }
             }
 
             T instance = ObjectMapperUtil.objectMapper.convertValue(fieldMap, clazz);

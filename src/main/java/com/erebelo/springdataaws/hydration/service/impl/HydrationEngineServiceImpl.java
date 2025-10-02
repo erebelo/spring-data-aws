@@ -110,7 +110,7 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
         hydrationJobService.updateJobStatus(job, HydrationStatus.PROCESSING);
 
         AtomicBoolean headerProcessed = new AtomicBoolean(false);
-        AtomicReference<String[]> columnNamesRef = new AtomicReference<>();
+        AtomicReference<String[]> athenaColumnOrder = new AtomicReference<>();
 
         Iterator<GetQueryResultsResponse> iterator = responses.getRight().iterator();
         iterator.forEachRemaining(response -> {
@@ -120,17 +120,17 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
             }
 
             // On first batch, extract header and adjust rows
-            rows = processAndSkipHeaderOnce(rows, headerProcessed, columnNamesRef);
+            rows = processAndSkipHeaderOnce(rows, headerProcessed, athenaColumnOrder);
 
             if (!rows.isEmpty()) {
-                hydrateDomainData(service, step, columnNamesRef.get(), rows);
+                hydrateDomainData(service, step, athenaColumnOrder.get(), rows);
             }
         });
     }
 
     private <T extends RecordDto> void hydrateDomainData(HydrationService<T> service, HydrationStep step,
-            String[] columnNames, List<Row> rows) {
-        List<T> dataRecords = service.mapRowsToDomainData(columnNames, rows);
+            String[] athenaColumnOrder, List<Row> rows) {
+        List<T> dataRecords = service.mapRowsToDomainData(athenaColumnOrder, rows);
 
         for (T dataRecord : dataRecords) {
             try {
@@ -146,10 +146,10 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
     }
 
     private List<Row> processAndSkipHeaderOnce(List<Row> rows, AtomicBoolean headerProcessed,
-            AtomicReference<String[]> columnNamesRef) {
+            AtomicReference<String[]> athenaColumnOrder) {
         if (!headerProcessed.getAndSet(true)) {
             Row headerRow = rows.getFirst();
-            columnNamesRef.set(headerRow.data().stream().map(Datum::varCharValue).toArray(String[]::new));
+            athenaColumnOrder.set(headerRow.data().stream().map(Datum::varCharValue).toArray(String[]::new));
 
             return rows.size() > 1 ? rows.subList(1, rows.size()) : Collections.emptyList();
         }

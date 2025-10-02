@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
 import com.erebelo.springdataaws.exception.model.AthenaQueryException;
 import com.erebelo.springdataaws.service.impl.AthenaServiceImpl;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -259,40 +260,44 @@ class AthenaServiceTest {
 
     @Test
     void testMapRowsToClassWithRandomColumnOrderSuccessful() {
-        Row row1 = Row
-                .builder().data(Datum.builder().varCharValue("first").build(),
-                        Datum.builder().varCharValue("val1").build(), Datum.builder().varCharValue("10").build())
+        Row row1 = Row.builder()
+                .data(Datum.builder().varCharValue("first").build(), Datum.builder().varCharValue("val1").build(),
+                        Datum.builder().varCharValue("10").build(), Datum.builder().varCharValue("2025-10-02").build())
                 .build();
 
-        Row row2 = Row
-                .builder().data(Datum.builder().varCharValue("second").build(),
-                        Datum.builder().varCharValue("val2").build(), Datum.builder().varCharValue("20").build())
+        Row row2 = Row.builder()
+                .data(Datum.builder().varCharValue("second").build(), Datum.builder().varCharValue("val2").build(),
+                        Datum.builder().varCharValue("20").build(), Datum.builder().varCharValue("").build())
                 .build();
 
         List<Row> rows = List.of(row1, row2);
 
-        List<TestEntity> result = service.mapRowsToClass(new String[]{"name", "value", "id"}, rows, TestEntity.class);
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"name", "value", "id", "startDate"}, rows,
+                TestEntity.class);
 
         assertEquals(2, result.size());
         assertEquals("10", result.getFirst().getId());
         assertEquals("first", result.getFirst().getName());
         assertEquals("val1", result.getFirst().getValue());
+        assertEquals(LocalDate.of(2025, 10, 2), result.getFirst().getStartDate());
         assertEquals("20", result.getLast().getId());
         assertEquals("second", result.getLast().getName());
         assertEquals("val2", result.getLast().getValue());
+        assertNull(result.getLast().getStartDate());
     }
 
     @Test
     void testMapRowsToClassHandlesNullRows() {
-        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value"}, null, TestEntity.class);
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "startDate"}, null,
+                TestEntity.class);
         assertNotNull(result);
         assertEquals(0, result.size());
     }
 
     @Test
     void testMapRowsToClassHandlesEmptyRows() {
-        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value"}, Collections.emptyList(),
-                TestEntity.class);
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "startDate"},
+                Collections.emptyList(), TestEntity.class);
         assertNotNull(result);
         assertEquals(0, result.size());
     }
@@ -302,7 +307,7 @@ class AthenaServiceTest {
         Datum d1 = Datum.builder().varCharValue("123").build();
         Row row = Row.builder().data(d1).build();
 
-        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value"}, List.of(row),
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "startDate"}, List.of(row),
                 TestEntity.class);
 
         assertEquals(1, result.size());
@@ -318,5 +323,6 @@ class AthenaServiceTest {
         private String id;
         private String name;
         private String value;
+        private LocalDate startDate;
     }
 }

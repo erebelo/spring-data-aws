@@ -57,8 +57,8 @@ public abstract class AbstractHydrationService<T extends RecordDto> implements H
     }
 
     @Override
-    public List<T> mapRowsToDomainData(String[] columnNames, List<Row> rows) {
-        return athenaService.mapRowsToClass(columnNames, rows, this.clazz);
+    public List<T> mapRowsToDomainData(String[] athenaColumnOrder, List<Row> rows) {
+        return athenaService.mapRowsToClass(athenaColumnOrder, rows, this.clazz);
     }
 
     @Override
