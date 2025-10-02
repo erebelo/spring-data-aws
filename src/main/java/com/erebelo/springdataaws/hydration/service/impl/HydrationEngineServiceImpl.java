@@ -10,19 +10,21 @@ import com.erebelo.springdataaws.hydration.service.HydrationJobService;
 import com.erebelo.springdataaws.hydration.service.HydrationService;
 import com.erebelo.springdataaws.hydration.service.HydrationStepService;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.MDC;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
+import software.amazon.awssdk.services.athena.model.Datum;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 import software.amazon.awssdk.services.athena.model.Row;
 
@@ -36,10 +38,14 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
     private final HydrationStepService hydrationStepService;
     private final Executor asyncTaskExecutor;
 
-    @Scheduled(fixedRateString = "${hydration.scheduler.fixed-rate}")
+    /**
+     * Main trigger method. Can be called programmatically with specific record
+     * types.
+     */
+    @Override
     public String triggerHydration(RecordTypeEnum... recordTypes) {
-        if (!hydrationJobService.existsInitiatedOrProcessingJob()) {
-            HydrationJob job = hydrationJobService.initNewJob();
+        HydrationJob job = initJobIfNoneRunning();
+        if (job != null) {
             Map<String, String> loggingContext = MDC.getCopyOfContextMap(); // Capture the current logging context
 
             CompletableFuture.runAsync(() -> {
@@ -48,7 +54,8 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
                     MDC.setContextMap(loggingContext);
                 }
                 try {
-                    processJob(job, recordTypes);
+                    log.info("Hydration triggered");
+                    executeJob(job, recordTypes);
                 } finally {
                     // Clear the logging context after the task completes
                     MDC.clear();
@@ -61,7 +68,17 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
         return hydrationJobService.getCurrentJob().getId();
     }
 
-    protected void processJob(HydrationJob job, RecordTypeEnum... recordTypes) {
+    @Override
+    public HydrationJob initJobIfNoneRunning() {
+        if (!hydrationJobService.existsInitiatedOrProcessingJob()) {
+            return hydrationJobService.initNewJob();
+        }
+        return null;
+    }
+
+    @Override
+    public void executeJob(HydrationJob job, RecordTypeEnum... recordTypes) {
+        log.info("Starting to execute job: {}", job.getId());
         List<RecordTypeEnum> filteringTypes = Arrays.asList(recordTypes);
         List<HydrationService<? extends RecordDto>> servicesToRun = ObjectUtils.isEmpty(filteringTypes)
                 ? hydrationPipeline
@@ -84,29 +101,36 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
         hydrationJobService.updateJobStatus(job, HydrationStatus.COMPLETED);
     }
 
-    protected void fetchAndHydrate(HydrationService<? extends RecordDto> service, HydrationJob job,
-            HydrationStep step) {
+    private void fetchAndHydrate(HydrationService<? extends RecordDto> service, HydrationJob job, HydrationStep step) {
         Pair<String, Iterable<GetQueryResultsResponse>> responses = service
                 .fetchDataFromAthena(service.getDeltaQuery());
-        step.setExecutionId(responses.getLeft());
 
+        step.setExecutionId(responses.getLeft());
         hydrationStepService.updateStepStatus(step, HydrationStatus.PROCESSING);
         hydrationJobService.updateJobStatus(job, HydrationStatus.PROCESSING);
 
-        AtomicBoolean headerSkipped = new AtomicBoolean(false);
+        AtomicBoolean headerProcessed = new AtomicBoolean(false);
+        AtomicReference<String[]> columnNamesRef = new AtomicReference<>();
+
         Iterator<GetQueryResultsResponse> iterator = responses.getRight().iterator();
-        iterator.forEachRemaining(i -> {
-            List<Row> rows = skipHeaderOnce(i.resultSet().rows(), headerSkipped);
+        iterator.forEachRemaining(response -> {
+            List<Row> rows = response.resultSet().rows();
+            if (rows == null || rows.isEmpty()) {
+                return;
+            }
+
+            // On first batch, extract header and adjust rows
+            rows = processAndSkipHeaderOnce(rows, headerProcessed, columnNamesRef);
 
             if (!rows.isEmpty()) {
-                hydrateDomainData(service, rows, step);
+                hydrateDomainData(service, step, columnNamesRef.get(), rows);
             }
         });
     }
 
-    protected <T extends RecordDto> void hydrateDomainData(HydrationService<T> service, List<Row> rows,
-            HydrationStep step) {
-        List<T> dataRecords = service.mapRowsToDomainData(rows);
+    private <T extends RecordDto> void hydrateDomainData(HydrationService<T> service, HydrationStep step,
+            String[] columnNames, List<Row> rows) {
+        List<T> dataRecords = service.mapRowsToDomainData(columnNames, rows);
 
         for (T dataRecord : dataRecords) {
             try {
@@ -121,9 +145,13 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
         }
     }
 
-    private List<Row> skipHeaderOnce(List<Row> rows, AtomicBoolean headerSkipped) {
-        if (!headerSkipped.getAndSet(true) && !rows.isEmpty()) {
-            return rows.subList(1, rows.size());
+    private List<Row> processAndSkipHeaderOnce(List<Row> rows, AtomicBoolean headerProcessed,
+            AtomicReference<String[]> columnNamesRef) {
+        if (!headerProcessed.getAndSet(true)) {
+            Row headerRow = rows.getFirst();
+            columnNamesRef.set(headerRow.data().stream().map(Datum::varCharValue).toArray(String[]::new));
+
+            return rows.size() > 1 ? rows.subList(1, rows.size()) : Collections.emptyList();
         }
         return rows;
     }

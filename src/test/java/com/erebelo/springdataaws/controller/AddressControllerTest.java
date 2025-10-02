@@ -33,7 +33,8 @@ class AddressControllerTest {
         given(service.addressFeedTrigger()).willReturn(EXECUTION_ID);
 
         mockMvc.perform(post(ADDRESSES_PATH + ADDRESSES_FEED_PATH).accept(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value(200)).andExpect(jsonPath("$.body")
+                .andExpect(status().isAccepted()).andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.body")
                         .value("Address feed execution created successfully. Execution ID: '" + EXECUTION_ID + "'"));
 
         verify(service).addressFeedTrigger();

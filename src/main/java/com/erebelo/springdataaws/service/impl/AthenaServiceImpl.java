@@ -4,7 +4,6 @@ import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
 import com.erebelo.springdataaws.exception.model.AthenaQueryException;
 import com.erebelo.springdataaws.service.AthenaService;
 import com.erebelo.springdataaws.util.ObjectMapperUtil;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -129,25 +128,23 @@ public class AthenaServiceImpl implements AthenaService {
     }
 
     /*
-     * Maps list of Athena Row objects into a list of instances of the given class
-     * type.
+     * Maps Athena Row objects to a list of instances of the given class, based on
+     * the provided column names in the same order as returned by Athena.
      */
-    public <T> List<T> mapRowsToClass(List<Row> rows, Class<T> clazz) {
+    public <T> List<T> mapRowsToClass(String[] columnNames, List<Row> rows, Class<T> clazz) {
         if (rows == null || rows.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<String> fieldNames = Arrays.stream(clazz.getDeclaredFields()).map(Field::getName).map(String::toLowerCase)
-                .toList();
-
+        List<String> normalizedColumns = Arrays.stream(columnNames).map(String::toLowerCase).toList();
         List<T> result = new ArrayList<>(rows.size());
 
         for (Row row : rows) {
             List<Datum> allData = row.data();
             Map<String, String> fieldMap = new LinkedHashMap<>();
 
-            for (int i = 0; i < fieldNames.size(); i++) {
-                String key = fieldNames.get(i);
+            for (int i = 0; i < normalizedColumns.size(); i++) {
+                String key = normalizedColumns.get(i);
                 String value = (i < allData.size() && allData.get(i) != null) ? allData.get(i).varCharValue() : null;
                 fieldMap.put(key, value);
             }

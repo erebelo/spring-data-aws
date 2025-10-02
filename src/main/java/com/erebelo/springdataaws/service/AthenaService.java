@@ -15,6 +15,6 @@ public interface AthenaService {
 
     List<String> getQueryResultsAsStrings(String queryExecutionId);
 
-    <T> List<T> mapRowsToClass(List<Row> rows, Class<T> clazz);
+    <T> List<T> mapRowsToClass(String[] columnNames, List<Row> rows, Class<T> clazz);
 
 }

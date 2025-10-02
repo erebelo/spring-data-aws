@@ -2,6 +2,7 @@ package com.erebelo.springdataaws.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -14,7 +15,10 @@ import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
 import com.erebelo.springdataaws.exception.model.AthenaQueryException;
 import com.erebelo.springdataaws.service.impl.AthenaServiceImpl;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,7 +53,7 @@ class AthenaServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(service, "athenaDBName", "db_test");
+        ReflectionTestUtils.setField(service, "athenaDatabase", "db_test");
         ReflectionTestUtils.setField(service, "outputBucketUrl", "s3://test-output-bucket");
     }
 
@@ -251,5 +255,68 @@ class AthenaServiceTest {
                 () -> service.getQueryResultsAsStrings(queryExecutionId));
 
         assertEquals("Failed to execute Athena query", exception.getMessage());
+    }
+
+    @Test
+    void testMapRowsToClassWithRandomColumnOrderSuccessful() {
+        Row row1 = Row
+                .builder().data(Datum.builder().varCharValue("first").build(),
+                        Datum.builder().varCharValue("val1").build(), Datum.builder().varCharValue("10").build())
+                .build();
+
+        Row row2 = Row
+                .builder().data(Datum.builder().varCharValue("second").build(),
+                        Datum.builder().varCharValue("val2").build(), Datum.builder().varCharValue("20").build())
+                .build();
+
+        List<Row> rows = List.of(row1, row2);
+
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"name", "value", "id"}, rows, TestEntity.class);
+
+        assertEquals(2, result.size());
+        assertEquals("10", result.getFirst().getId());
+        assertEquals("first", result.getFirst().getName());
+        assertEquals("val1", result.getFirst().getValue());
+        assertEquals("20", result.getLast().getId());
+        assertEquals("second", result.getLast().getName());
+        assertEquals("val2", result.getLast().getValue());
+    }
+
+    @Test
+    void testMapRowsToClassHandlesNullRows() {
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value"}, null, TestEntity.class);
+        assertNotNull(result);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void testMapRowsToClassHandlesEmptyRows() {
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value"}, Collections.emptyList(),
+                TestEntity.class);
+        assertNotNull(result);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void testMapRowsToClassHandlesMissingValues() {
+        Datum d1 = Datum.builder().varCharValue("123").build();
+        Row row = Row.builder().data(d1).build();
+
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value"}, List.of(row),
+                TestEntity.class);
+
+        assertEquals(1, result.size());
+        TestEntity entity = result.getFirst();
+        assertEquals("123", entity.getId());
+        assertNull(entity.getName());
+        assertNull(entity.getValue());
+    }
+
+    @Getter
+    @Setter
+    static class TestEntity {
+        private String id;
+        private String name;
+        private String value;
     }
 }
