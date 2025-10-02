@@ -2,6 +2,7 @@ package com.erebelo.springdataaws.hydration.service.contract;
 
 import com.erebelo.springdataaws.hydration.domain.dto.ContractAdvisorDto;
 import com.erebelo.springdataaws.hydration.domain.enumeration.RecordTypeEnum;
+import com.erebelo.springdataaws.hydration.domain.model.HydrationJob;
 import com.erebelo.springdataaws.hydration.repository.contract.ContractQueries;
 import com.erebelo.springdataaws.hydration.service.AbstractHydrationService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,8 @@ public class ContractAdvisorService extends AbstractHydrationService<ContractAdv
 
     @Override
     public String getDeltaQuery() {
-        return contractQueries.getAdvisorContractDataQuery();
+        HydrationJob currentJob = this.hydrationJobService.getCurrentJob();
+        return contractQueries.getAdvisorContractDataQuery(currentJob.getRunNumber());
     }
 
     @Override
