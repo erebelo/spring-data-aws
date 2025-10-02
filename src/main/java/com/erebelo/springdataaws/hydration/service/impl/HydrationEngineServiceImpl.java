@@ -74,7 +74,7 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
                 fetchAndHydrate(service, job, step);
                 hydrationStepService.updateStepStatus(step, HydrationStatus.COMPLETED);
             } catch (Exception e) {
-                log.error("Error occurred while processing job {}", job.getId(), e);
+                log.error("Error occurred while processing job: {}", job.getId(), e);
                 hydrationStepService.updateStepStatus(step, HydrationStatus.FAILED);
                 hydrationJobService.updateJobStatus(job, HydrationStatus.FAILED);
                 return;

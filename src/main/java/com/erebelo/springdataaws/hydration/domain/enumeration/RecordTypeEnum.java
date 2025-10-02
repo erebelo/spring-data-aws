@@ -16,8 +16,8 @@ import lombok.ToString;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public enum RecordTypeEnum {
 
-    CONTRACT_FIRM("CONTRACT_FIRM", ContractFirmDto.class), CONTRACT_ADVISOR("CONTRACT_ADVISOR",
-            ContractAdvisorDto.class);
+    CONTRACT_ADVISOR("CONTRACT_ADVISOR", ContractAdvisorDto.class), CONTRACT_FIRM("CONTRACT_FIRM",
+            ContractFirmDto.class);
 
     private final String value;
     private final Class<? extends RecordDto> targetType;

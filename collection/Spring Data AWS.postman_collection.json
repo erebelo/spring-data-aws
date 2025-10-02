@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "9d75710e-f4b4-4219-9130-3ec090e906aa",
+		"_postman_id": "bda55800-d865-4924-8d66-08080b8d49d5",
 		"name": "Spring Data AWS",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "16363964"
+		"_exporter_id": "3559566"
 	},
 	"item": [
 		{
@@ -36,7 +36,7 @@
 			"name": "Addresses",
 			"item": [
 				{
-					"name": "Trigger Address Feed",
+					"name": "POST Trigger Address Feed",
 					"request": {
 						"auth": {
 							"type": "noauth"
@@ -54,6 +54,41 @@
 								"spring-data-aws",
 								"addresses",
 								"feed"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Hydration",
+			"item": [
+				{
+					"name": "POST Trigger Hydration",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"recordTypes\": [\r\n        \"CONTRACT_ADVISOR\",\r\n        \"CONTRACT_FIRM\"\r\n    ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8080/spring-data-aws/hydration/start",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8080",
+							"path": [
+								"spring-data-aws",
+								"hydration",
+								"start"
 							]
 						}
 					},

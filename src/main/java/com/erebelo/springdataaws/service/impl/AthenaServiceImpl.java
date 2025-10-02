@@ -33,13 +33,13 @@ import software.amazon.awssdk.services.athena.paginators.GetQueryResultsIterable
 public class AthenaServiceImpl implements AthenaService {
 
     private final AthenaClient athenaClient;
-    private final String athenaDBName;
+    private final String athenaDatabase;
     private final String outputBucketUrl;
 
     @Override
     public AthenaQueryDto submitAthenaQuery(String queryString) {
         try {
-            QueryExecutionContext queryExecutionContext = QueryExecutionContext.builder().database(athenaDBName)
+            QueryExecutionContext queryExecutionContext = QueryExecutionContext.builder().database(athenaDatabase)
                     .build();
             ResultConfiguration resultConfiguration = ResultConfiguration.builder().outputLocation(outputBucketUrl)
                     .build();

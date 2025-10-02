@@ -22,7 +22,7 @@ public class AddressController {
 
     private final AddressService service;
 
-    @ResponseStatus(HttpStatus.OK)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping(value = ADDRESSES_FEED_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
     public BaseResponse addressFeedTrigger() {
         log.info("POST {}", ADDRESSES_PATH + ADDRESSES_FEED_PATH);

@@ -24,14 +24,14 @@ public class AthenaConfiguration {
 
     @Bean
     @Primary // Default Athena service
-    public AthenaServiceImpl athenaService(@Value("${athena.database.name}") String athenaDBName,
+    public AthenaServiceImpl athenaService(@Value("${athena.database}") String athenaDatabase,
             @Value("${s3.output.bucket.url}") String outputBucketUrl, AthenaClient athenaClient) {
-        return new AthenaServiceImpl(athenaClient, athenaDBName, outputBucketUrl);
+        return new AthenaServiceImpl(athenaClient, athenaDatabase, outputBucketUrl);
     }
 
     @Bean("hydrationAthenaService")
-    public AthenaServiceImpl hydrationAthenaService(@Value("${athena.hydration.database.name}") String athenaDBName,
+    public AthenaServiceImpl hydrationAthenaService(@Value("${athena.hydration.database}") String athenaDatabase,
             @Value("${s3.hydration.output.bucket.url}") String outputBucketUrl, AthenaClient athenaClient) {
-        return new AthenaServiceImpl(athenaClient, athenaDBName, outputBucketUrl);
+        return new AthenaServiceImpl(athenaClient, athenaDatabase, outputBucketUrl);
     }
 }

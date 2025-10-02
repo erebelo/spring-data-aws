@@ -13,7 +13,7 @@ import org.springframework.util.PropertyPlaceholderHelper;
 @ConfigurationProperties(prefix = "athena.hydration")
 public class ContractQueries {
 
-    private String databaseName;
+    private String database;
     private String advisorContract;
     private String firmContract;
 
@@ -32,7 +32,7 @@ public class ContractQueries {
     private final PropertyPlaceholderHelper placeholderHelper = new PropertyPlaceholderHelper("${", "}");
 
     private Map<String, String> buildHydrationTables(Long runNumber) {
-        return Map.of("db", databaseName, "advisor", advisorContract, "firm", firmContract, "runNumber",
+        return Map.of("db", database, "advisor", advisorContract, "firm", firmContract, "runNumber",
                 String.valueOf(runNumber));
     }
 
