@@ -9,8 +9,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS `spring_data_aws_db`.`legacy_addresses` (
     'zipcode' string
 )
 ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-WITH SERDEPROPERTIES ('field.delin' = ',')
-STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat' OUTPUTFORMAT 'org.apache.hadoop.hive.gl.io.HiveIgnoreKeyTextOutputFormat'
+WITH SERDEPROPERTIES ('field.delim' = ',')
+STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat' OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
 LOCATION 's3://spring-data-aws-bucket/legacy-addresses/'
 TBLPROPERTIES (
     'classification' = 'csv',
@@ -30,8 +30,8 @@ CREATE EXTERNAL TABLE IF NOT EXISTS `spring_data_aws_db`.`addresses` (
     'other_country' string
 )
 ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
-WITH SERDEPROPERTIES ('field.delin' = ',')
-STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat' OUTPUTFORMAT 'org.apache.hadoop.hive.gl.io.HiveIgnoreKeyTextOutputFormat'
+WITH SERDEPROPERTIES ('field.delim' = ',')
+STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat' OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
 LOCATION 's3://spring-data-aws-bucket/addresses/'
 TBLPROPERTIES (
     'classification' = 'csv',
