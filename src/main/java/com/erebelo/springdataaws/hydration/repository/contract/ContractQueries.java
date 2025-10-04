@@ -14,35 +14,35 @@ import org.springframework.util.PropertyPlaceholderHelper;
 public class ContractQueries {
 
     private String database;
-    private String advisorContract;
-    private String firmContract;
+    private String advisorContracts;
+    private String firmContracts;
 
-    private static final String ADVISOR_CONTRACT_QUERY_TEMPLATE = """
+    private static final String ADVISOR_CONTRACTS_QUERY_TEMPLATE = """
                SELECT ROW_NUMBER() OVER () AS recordId, *
-               FROM ${db}.${advisor}
+               FROM ${db}.${advisors}
                WHERE hydrationRun = ${runNumber}
             """;
 
-    private static final String FIRM_CONTRACT_QUERY_TEMPLATE = """
+    private static final String FIRM_CONTRACTS_QUERY_TEMPLATE = """
                SELECT ROW_NUMBER() OVER () AS recordId, *
-               FROM ${db}.${firm}
+               FROM ${db}.${firms}
                WHERE hydrationRun = ${runNumber}
             """;
 
     private final PropertyPlaceholderHelper placeholderHelper = new PropertyPlaceholderHelper("${", "}");
 
     private Map<String, String> buildHydrationTables(Long runNumber) {
-        return Map.of("db", database, "advisor", advisorContract, "firm", firmContract, "runNumber",
+        return Map.of("db", database, "advisors", advisorContracts, "firms", firmContracts, "runNumber",
                 String.valueOf(runNumber));
     }
 
-    public String getAdvisorContractDataQuery(Long runNumber) {
-        return placeholderHelper.replacePlaceholders(ADVISOR_CONTRACT_QUERY_TEMPLATE,
+    public String getAdvisorContractsDataQuery(Long runNumber) {
+        return placeholderHelper.replacePlaceholders(ADVISOR_CONTRACTS_QUERY_TEMPLATE,
                 buildHydrationTables(runNumber)::get);
     }
 
-    public String getFirmContractDataQuery(Long runNumber) {
-        return placeholderHelper.replacePlaceholders(FIRM_CONTRACT_QUERY_TEMPLATE,
+    public String getFirmContractsDataQuery(Long runNumber) {
+        return placeholderHelper.replacePlaceholders(FIRM_CONTRACTS_QUERY_TEMPLATE,
                 buildHydrationTables(runNumber)::get);
     }
 }

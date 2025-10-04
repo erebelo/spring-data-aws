@@ -24,14 +24,18 @@ public class AthenaConfiguration {
 
     @Bean
     @Primary // Default Athena service
-    public AthenaServiceImpl athenaService(@Value("${athena.database}") String athenaDatabase,
-            @Value("${s3.output.bucket.url}") String outputBucketUrl, AthenaClient athenaClient) {
-        return new AthenaServiceImpl(athenaClient, athenaDatabase, outputBucketUrl);
+    public AthenaServiceImpl defaultAthenaService(AthenaClient athenaClient,
+            @Value("${athena.default.database}") String athenaDatabase,
+            @Value("${s3.default.output.bucket.url}") String outputBucketUrl,
+            @Value("${athena.default.workgroup}") String workgroup) {
+        return new AthenaServiceImpl(athenaClient, athenaDatabase, outputBucketUrl, workgroup);
     }
 
     @Bean("hydrationAthenaService")
-    public AthenaServiceImpl hydrationAthenaService(@Value("${athena.hydration.database}") String athenaDatabase,
-            @Value("${s3.hydration.output.bucket.url}") String outputBucketUrl, AthenaClient athenaClient) {
-        return new AthenaServiceImpl(athenaClient, athenaDatabase, outputBucketUrl);
+    public AthenaServiceImpl hydrationAthenaService(AthenaClient athenaClient,
+            @Value("${athena.hydration.database}") String athenaDatabase,
+            @Value("${s3.hydration.output.bucket.url}") String outputBucketUrl,
+            @Value("${athena.hydration.workgroup}") String workgroup) {
+        return new AthenaServiceImpl(athenaClient, athenaDatabase, outputBucketUrl, workgroup);
     }
 }

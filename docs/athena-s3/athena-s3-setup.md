@@ -8,6 +8,7 @@
 
 ```sql
 CREATE DATABASE IF NOT EXISTS spring_data_aws_db;
+CREATE DATABASE IF NOT EXISTS spring_data_aws_hydration_db;
 ```
 
 - Run the `create_athena_address_tables.sql` script

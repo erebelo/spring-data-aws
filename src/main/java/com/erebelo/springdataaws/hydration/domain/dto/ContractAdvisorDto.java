@@ -14,6 +14,7 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class ContractAdvisorDto extends RecordDto {
 
+    private String id;
     private String firstName;
     private String lastName;
     private String licenseNumber;

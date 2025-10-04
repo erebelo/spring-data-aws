@@ -27,7 +27,7 @@ public class ContractAdvisorService extends AbstractHydrationService<ContractAdv
     @Override
     public String getDeltaQuery() {
         HydrationJob currentJob = this.hydrationJobService.getCurrentJob();
-        return contractQueries.getAdvisorContractDataQuery(currentJob.getRunNumber());
+        return contractQueries.getAdvisorContractsDataQuery(currentJob.getRunNumber());
     }
 
     @Override

@@ -37,6 +37,7 @@ public class AthenaServiceImpl implements AthenaService {
     private final AthenaClient athenaClient;
     private final String athenaDatabase;
     private final String outputBucketUrl;
+    private final String workgroup;
 
     @Override
     public AthenaQueryDto submitAthenaQuery(String queryString) {
@@ -48,7 +49,7 @@ public class AthenaServiceImpl implements AthenaService {
 
             StartQueryExecutionRequest startQueryExecutionRequest = StartQueryExecutionRequest.builder()
                     .queryString(queryString).queryExecutionContext(queryExecutionContext)
-                    .resultConfiguration(resultConfiguration).build();
+                    .resultConfiguration(resultConfiguration).workGroup(workgroup).build();
 
             StartQueryExecutionResponse startQueryExecutionResponse = athenaClient
                     .startQueryExecution(startQueryExecutionRequest);

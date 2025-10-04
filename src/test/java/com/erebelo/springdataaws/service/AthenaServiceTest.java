@@ -56,6 +56,7 @@ class AthenaServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(service, "athenaDatabase", "db_test");
         ReflectionTestUtils.setField(service, "outputBucketUrl", "s3://test-output-bucket");
+        ReflectionTestUtils.setField(service, "workgroup", "test_wg");
     }
 
     @Test
