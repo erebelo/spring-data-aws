@@ -1,5 +1,6 @@
 package com.erebelo.springdataaws.hydration.domain.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,10 +16,19 @@ import lombok.experimental.SuperBuilder;
 public class ContractFirmDto extends RecordDto {
 
     private String id;
+
     private String name;
+
+    @JsonProperty("registration_number")
     private String registrationNumber;
+
+    @JsonProperty("tax_id")
     private String taxId;
+
+    @JsonProperty("start_date")
     private LocalDate startDate;
+
+    @JsonProperty("end_date")
     private LocalDate endDate;
 
 }

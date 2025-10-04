@@ -18,15 +18,15 @@ public class ContractQueries {
     private String firmContracts;
 
     private static final String ADVISOR_CONTRACTS_QUERY_TEMPLATE = """
-               SELECT ROW_NUMBER() OVER () AS recordId, *
+               SELECT ROW_NUMBER() OVER () AS record_id, *
                FROM ${db}.${advisors}
-               WHERE hydrationRun = ${runNumber}
+               WHERE run_number = ${runNumber}
             """;
 
     private static final String FIRM_CONTRACTS_QUERY_TEMPLATE = """
-               SELECT ROW_NUMBER() OVER () AS recordId, *
+               SELECT ROW_NUMBER() OVER () AS record_id, *
                FROM ${db}.${firms}
-               WHERE hydrationRun = ${runNumber}
+               WHERE run_number = ${runNumber}
             """;
 
     private final PropertyPlaceholderHelper placeholderHelper = new PropertyPlaceholderHelper("${", "}");

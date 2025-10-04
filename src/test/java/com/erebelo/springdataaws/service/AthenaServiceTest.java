@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verify;
 import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
 import com.erebelo.springdataaws.exception.model.AthenaQueryException;
 import com.erebelo.springdataaws.service.impl.AthenaServiceImpl;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -273,7 +274,7 @@ class AthenaServiceTest {
 
         List<Row> rows = List.of(row1, row2);
 
-        List<TestEntity> result = service.mapRowsToClass(new String[]{"name", "value", "id", "startDate"}, rows,
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"name", "value", "id", "start_date"}, rows,
                 TestEntity.class);
 
         assertEquals(2, result.size());
@@ -289,7 +290,7 @@ class AthenaServiceTest {
 
     @Test
     void testMapRowsToClassHandlesNullRows() {
-        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "startDate"}, null,
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "start_date"}, null,
                 TestEntity.class);
         assertNotNull(result);
         assertEquals(0, result.size());
@@ -297,7 +298,7 @@ class AthenaServiceTest {
 
     @Test
     void testMapRowsToClassHandlesEmptyRows() {
-        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "startDate"},
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "start_date"},
                 Collections.emptyList(), TestEntity.class);
         assertNotNull(result);
         assertEquals(0, result.size());
@@ -308,8 +309,8 @@ class AthenaServiceTest {
         Datum d1 = Datum.builder().varCharValue("123").build();
         Row row = Row.builder().data(d1).build();
 
-        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "startDate"}, List.of(row),
-                TestEntity.class);
+        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "start_date"},
+                List.of(row), TestEntity.class);
 
         assertEquals(1, result.size());
         TestEntity entity = result.getFirst();
@@ -324,6 +325,7 @@ class AthenaServiceTest {
         private String id;
         private String name;
         private String value;
+        @JsonProperty("start_date")
         private LocalDate startDate;
     }
 }

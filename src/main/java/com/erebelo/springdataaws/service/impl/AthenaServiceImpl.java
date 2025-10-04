@@ -4,6 +4,7 @@ import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
 import com.erebelo.springdataaws.exception.model.AthenaQueryException;
 import com.erebelo.springdataaws.service.AthenaService;
 import com.erebelo.springdataaws.util.ObjectMapperUtil;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JavaType;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -143,8 +144,11 @@ public class AthenaServiceImpl implements AthenaService {
         List<String> normalizedColumns = Arrays.stream(athenaColumnOrder).toList();
         List<T> result = new ArrayList<>(rows.size());
 
-        Map<String, Field> fieldTypes = Arrays.stream(clazz.getDeclaredFields())
-                .collect(Collectors.toMap(Field::getName, f -> f));
+        // Build map of column name to field, using @JsonProperty if present
+        Map<String, Field> fieldTypes = Arrays.stream(clazz.getDeclaredFields()).collect(Collectors.toMap(f -> {
+            JsonProperty prop = f.getAnnotation(JsonProperty.class);
+            return (prop != null && !prop.value().isEmpty()) ? prop.value() : f.getName();
+        }, f -> f));
 
         for (Row row : rows) {
             List<Datum> allData = row.data();
@@ -161,8 +165,6 @@ public class AthenaServiceImpl implements AthenaService {
 
                     Object converted = ObjectMapperUtil.objectMapper.convertValue(rawValue, javaType);
                     fieldMap.put(key, converted);
-                } else {
-                    fieldMap.put(key, rawValue);
                 }
             }
 
