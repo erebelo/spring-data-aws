@@ -41,6 +41,10 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
     private final ApplicationContext applicationContext;
     private final Executor asyncTaskExecutor;
 
+    /*
+     * Returns the Spring proxy to ensure @Transactional methods are applied when
+     * called internally.
+     */
     private HydrationEngineServiceImpl getSelfProxy() {
         return applicationContext.getBean(HydrationEngineServiceImpl.class);
     }
