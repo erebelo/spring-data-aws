@@ -10,6 +10,8 @@ import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 import software.amazon.awssdk.services.athena.model.Row;
 
@@ -61,7 +63,12 @@ public abstract class AbstractHydrationService<T extends RecordDto> implements H
         return athenaService.mapRowsToClass(athenaColumnOrder, rows, this.clazz);
     }
 
+    /*
+     * Executes in a separate transaction to ensure failure logs are persisted even
+     * if the main transaction rolls back.
+     */
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void saveHydrationFailedRecord(HydrationStep step, String recordId, String errorMessage) {
         HydrationFailedRecord failedRecord = HydrationFailedRecord.builder().recordId(recordId).stepId(step.getId())
                 .executionId(step.getExecutionId()).domainType(this.getRecordType()).errorMessage(errorMessage).build();
