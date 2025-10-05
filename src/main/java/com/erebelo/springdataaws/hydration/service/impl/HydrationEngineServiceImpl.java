@@ -105,6 +105,7 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
                 log.error("Error occurred while processing job: {}", job.getId(), e);
                 hydrationStepService.updateStepStatus(step, HydrationStatus.FAILED);
                 hydrationJobService.updateJobStatus(job, HydrationStatus.FAILED);
+                // Abort processing remaining services in the pipeline due to failure
                 return;
             }
         }
