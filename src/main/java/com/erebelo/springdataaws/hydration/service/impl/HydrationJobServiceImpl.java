@@ -1,21 +1,37 @@
 package com.erebelo.springdataaws.hydration.service.impl;
 
+import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
+import com.erebelo.springdataaws.hydration.domain.dto.HydrationRunDto;
 import com.erebelo.springdataaws.hydration.domain.enumeration.HydrationStatus;
 import com.erebelo.springdataaws.hydration.domain.model.HydrationJob;
 import com.erebelo.springdataaws.hydration.repository.HydrationJobRepository;
+import com.erebelo.springdataaws.hydration.repository.contract.HydrationRunQueries;
 import com.erebelo.springdataaws.hydration.service.HydrationJobService;
+import com.erebelo.springdataaws.service.AthenaService;
 import java.time.Instant;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.athena.model.Datum;
+import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
+import software.amazon.awssdk.services.athena.model.Row;
 
 @Service
-@RequiredArgsConstructor
 public class HydrationJobServiceImpl implements HydrationJobService {
 
+    private final AthenaService athenaService;
     private final HydrationJobRepository repository;
+    private final HydrationRunQueries hydrationRunQueries;
+
+    public HydrationJobServiceImpl(@Qualifier("hydrationAthenaService") AthenaService athenaService,
+            HydrationJobRepository repository, HydrationRunQueries hydrationRunQueries) {
+        this.athenaService = athenaService;
+        this.repository = repository;
+        this.hydrationRunQueries = hydrationRunQueries;
+    }
 
     @Getter
     private HydrationJob currentJob;
@@ -30,9 +46,15 @@ public class HydrationJobServiceImpl implements HydrationJobService {
         Optional<HydrationJob> lastJobRun = repository
                 .findTopByStatusInOrderByRunNumberDesc(List.of(HydrationStatus.COMPLETED, HydrationStatus.FAILED));
 
-        long nextRunNumber = lastJobRun.map(job -> job.getRunNumber() + 1).orElse(1L);
-        HydrationJob newJob = HydrationJob.builder().runNumber(nextRunNumber).startTime(Instant.now())
-                .status(HydrationStatus.INITIATED).build();
+        Long nextRunNumber = lastJobRun.map(job -> job.getRunNumber() + 1).orElse(1L);
+        HydrationRunDto hydrationRun = fetchHydrationRunFromAthena(nextRunNumber);
+
+        if (hydrationRun == null) {
+            throw new IllegalStateException("No hydration run found for runNumber: " + nextRunNumber);
+        }
+
+        HydrationJob newJob = HydrationJob.builder().runNumber(nextRunNumber).createdAt(hydrationRun.getCreatedAt())
+                .startTime(Instant.now()).status(HydrationStatus.INITIATED).build();
 
         repository.save(newJob);
         this.currentJob = newJob;
@@ -51,5 +73,35 @@ public class HydrationJobServiceImpl implements HydrationJobService {
         }
 
         repository.save(job);
+    }
+
+    private HydrationRunDto fetchHydrationRunFromAthena(Long runNumber) {
+        AthenaQueryDto athenaQuery = athenaService
+                .submitAthenaQuery(hydrationRunQueries.getHydrationRunsDataQuery(runNumber));
+        String executionId = athenaQuery.getExecutionId();
+
+        try {
+            athenaService.waitForQueryToComplete(executionId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Thread interrupted while waiting for Athena query to complete", e);
+        }
+
+        Iterator<GetQueryResultsResponse> iterator = athenaService.getQueryResults(executionId).iterator();
+
+        if (iterator.hasNext()) {
+            List<Row> rows = iterator.next().resultSet().rows();
+
+            if (rows.size() > 1) {
+                String[] athenaColumnOrder = rows.getFirst().data().stream().map(Datum::varCharValue)
+                        .toArray(String[]::new);
+                List<HydrationRunDto> hydrationRuns = athenaService.mapRowsToClass(athenaColumnOrder,
+                        rows.subList(1, rows.size()), HydrationRunDto.class);
+
+                return hydrationRuns.getFirst();
+            }
+        }
+
+        return null;
     }
 }

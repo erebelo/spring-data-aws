@@ -19,30 +19,30 @@ public class ContractQueries {
 
     private static final String ADVISOR_CONTRACTS_QUERY_TEMPLATE = """
                SELECT ROW_NUMBER() OVER () AS record_id, *
-               FROM ${db}.${advisors}
-               WHERE run_number = ${runNumber}
+               FROM ${db}.${advisorContracts}
+               WHERE run_number = ${runNumber};
             """;
 
     private static final String FIRM_CONTRACTS_QUERY_TEMPLATE = """
                SELECT ROW_NUMBER() OVER () AS record_id, *
-               FROM ${db}.${firms}
-               WHERE run_number = ${runNumber}
+               FROM ${db}.${firmContracts}
+               WHERE run_number = ${runNumber};
             """;
 
     private final PropertyPlaceholderHelper placeholderHelper = new PropertyPlaceholderHelper("${", "}");
 
-    private Map<String, String> buildHydrationTables(Long runNumber) {
-        return Map.of("db", database, "advisors", advisorContracts, "firms", firmContracts, "runNumber",
+    private Map<String, String> buildHydrationContractTables(Long runNumber) {
+        return Map.of("db", database, "advisorContracts", advisorContracts, "firmContracts", firmContracts, "runNumber",
                 String.valueOf(runNumber));
     }
 
     public String getAdvisorContractsDataQuery(Long runNumber) {
         return placeholderHelper.replacePlaceholders(ADVISOR_CONTRACTS_QUERY_TEMPLATE,
-                buildHydrationTables(runNumber)::get);
+                buildHydrationContractTables(runNumber)::get);
     }
 
     public String getFirmContractsDataQuery(Long runNumber) {
         return placeholderHelper.replacePlaceholders(FIRM_CONTRACTS_QUERY_TEMPLATE,
-                buildHydrationTables(runNumber)::get);
+                buildHydrationContractTables(runNumber)::get);
     }
 }

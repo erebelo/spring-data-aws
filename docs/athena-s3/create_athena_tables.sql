@@ -1,3 +1,19 @@
+CREATE EXTERNAL TABLE IF NOT EXISTS spring_data_aws_hydration_db.hydration_runs (
+    run_number string,
+    created_at string
+)
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
+WITH SERDEPROPERTIES (
+    'field.delim' = ','
+)
+STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
+OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION 's3://spring-data-aws-bucket/hydration/hydration_runs/'
+TBLPROPERTIES (
+    'classification' = 'csv',
+    'skip.header.line.count' = '1'
+);
+
 CREATE EXTERNAL TABLE IF NOT EXISTS spring_data_aws_hydration_db.advisor_contracts (
     id string,
     first_name string,

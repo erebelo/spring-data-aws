@@ -20,6 +20,7 @@ public class HydrationJob {
     private String id;
 
     private Long runNumber;
+    private Instant createdAt;
     private HydrationStatus status;
     private Instant startTime;
     private Instant endTime;
