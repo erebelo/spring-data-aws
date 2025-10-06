@@ -22,7 +22,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.MDC;
-import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
@@ -38,15 +39,18 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
     private final List<HydrationService<? extends RecordDto>> hydrationPipeline;
     private final HydrationJobService hydrationJobService;
     private final HydrationStepService hydrationStepService;
-    private final ApplicationContext applicationContext;
     private final Executor asyncTaskExecutor;
 
     /*
-     * Returns the Spring proxy to ensure @Transactional methods are applied when
-     * called internally.
+     * Returns the Spring proxy to enable @Transactional on internal calls.
+     * 
+     * @Lazy is required to avoid circular dependency during injection.
      */
-    private HydrationEngineServiceImpl getSelfProxy() {
-        return applicationContext.getBean(HydrationEngineServiceImpl.class);
+    private HydrationEngineService selfProxy;
+
+    @Autowired
+    public void setSelfProxy(@Lazy HydrationEngineService selfProxy) {
+        this.selfProxy = selfProxy;
     }
 
     /**
@@ -99,7 +103,7 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
             HydrationStep step = hydrationStepService.initNewStep(service.getRecordType(), job.getId());
 
             try {
-                getSelfProxy().fetchAndHydrate(service, job, step);
+                selfProxy.fetchAndHydrate(service, job, step);
                 hydrationStepService.updateStepStatus(step, HydrationStatus.COMPLETED);
             } catch (Exception e) {
                 log.error("Error occurred while processing job: {}", job.getId(), e);
@@ -113,6 +117,7 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
         hydrationJobService.updateJobStatus(job, HydrationStatus.COMPLETED);
     }
 
+    @Override
     @Transactional
     public void fetchAndHydrate(HydrationService<? extends RecordDto> service, HydrationJob job, HydrationStep step) {
         Pair<String, Iterable<GetQueryResultsResponse>> responses = service
