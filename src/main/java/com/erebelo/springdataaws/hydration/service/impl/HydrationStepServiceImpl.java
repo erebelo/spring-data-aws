@@ -17,6 +17,24 @@ public class HydrationStepServiceImpl implements HydrationStepService {
     private final HydrationStepRepository repository;
 
     @Override
+    public void cancelActiveStepsByJobId(String jobId) {
+        List<HydrationStep> activeSteps = repository.findAllByJobIdAndStatusIn(jobId,
+                List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING));
+
+        if (activeSteps.isEmpty()) {
+            return;
+        }
+
+        Instant now = Instant.now();
+        activeSteps.forEach(step -> {
+            step.setStatus(HydrationStatus.CANCELED);
+            step.setEndTime(now);
+        });
+
+        repository.saveAll(activeSteps);
+    }
+
+    @Override
     public HydrationStep initNewStep(RecordTypeEnum recordType, String jobId) {
         HydrationStep newStep = HydrationStep.builder().jobId(jobId).startTime(Instant.now()).domainType(recordType)
                 .status(HydrationStatus.INITIATED).build();
@@ -35,23 +53,5 @@ public class HydrationStepServiceImpl implements HydrationStepService {
         }
 
         repository.save(step);
-    }
-
-    @Override
-    public void cancelActiveStepsByJobId(String jobId) {
-        List<HydrationStep> activeSteps = repository.findAllByJobIdAndStatusIn(jobId,
-                List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING));
-
-        if (activeSteps.isEmpty()) {
-            return;
-        }
-
-        Instant now = Instant.now();
-        activeSteps.forEach(step -> {
-            step.setStatus(HydrationStatus.CANCELED);
-            step.setEndTime(now);
-        });
-
-        repository.saveAll(activeSteps);
     }
 }

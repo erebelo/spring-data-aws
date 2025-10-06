@@ -6,10 +6,10 @@ import com.erebelo.springdataaws.hydration.domain.model.HydrationStep;
 
 public interface HydrationStepService {
 
+    void cancelActiveStepsByJobId(String jobId);
+
     HydrationStep initNewStep(RecordTypeEnum recordType, String jobId);
 
     void updateStepStatus(HydrationStep step, HydrationStatus status);
-
-    void cancelActiveStepsByJobId(String jobId);
 
 }

@@ -24,6 +24,9 @@ public class AwsConfiguration {
 
     @Bean
     public Region awsRegion(@Value("${aws.region}") String region) {
+        if (Region.regions().stream().noneMatch(r -> r.id().equals(region))) {
+            throw new IllegalArgumentException("Invalid AWS region: " + region);
+        }
         return Region.of(region);
     }
 }
