@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.athena.AthenaClient;
@@ -15,10 +15,10 @@ import software.amazon.awssdk.services.athena.AthenaClient;
 public class AthenaConfiguration {
 
     @Bean
-    public AthenaClient athenaClient() {
-        return AthenaClient.builder().region(Region.US_EAST_1).credentialsProvider(DefaultCredentialsProvider.create())
-                .httpClientBuilder(ApacheHttpClient.builder().socketTimeout(Duration.ofSeconds(5))
-                        .connectionTimeout(Duration.ofSeconds(5)))
+    public AthenaClient athenaClient(AwsCredentialsProvider credentialsProvider, Region region) {
+        return AthenaClient
+                .builder().region(region).credentialsProvider(credentialsProvider).httpClientBuilder(ApacheHttpClient
+                        .builder().socketTimeout(Duration.ofSeconds(5)).connectionTimeout(Duration.ofSeconds(5)))
                 .build();
     }
 
