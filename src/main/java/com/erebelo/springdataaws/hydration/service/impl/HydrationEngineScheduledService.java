@@ -8,12 +8,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-/**
- * Scheduled method called automatically by Spring. No-arg as required
- * by @Scheduled.
- * <p>
- * The @ConditionalOnProperty ensures this job runs only when
- * 'hydration.scheduler.enabled=true'.
+/*
+ * Scheduled method called automatically by Spring.
+ * No-arg as required by @Scheduled.
+ * The @ConditionalOnProperty ensures this job runs only when 'hydration.scheduler.enabled=true'.
  */
 @Slf4j
 @Service

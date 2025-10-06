@@ -53,15 +53,15 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
         this.selfProxy = selfProxy;
     }
 
-    /**
-     * Main trigger method. Can be called programmatically with specific record
-     * types.
+    /*
+     * Main trigger method called programmatically with specific types.
      */
     @Override
     public String triggerHydration(RecordTypeEnum... recordTypes) {
         HydrationJob job = initJobIfNoneRunning();
         if (job != null) {
-            Map<String, String> loggingContext = MDC.getCopyOfContextMap(); // Capture the current logging context
+            // Capture the current logging context
+            Map<String, String> loggingContext = MDC.getCopyOfContextMap();
 
             CompletableFuture.runAsync(() -> {
                 if (loggingContext != null) {
