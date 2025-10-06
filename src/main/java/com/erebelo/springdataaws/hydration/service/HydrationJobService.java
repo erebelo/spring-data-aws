@@ -9,6 +9,8 @@ public interface HydrationJobService {
 
     boolean existsInitiatedOrProcessingJob();
 
+    boolean cancelStuckJobsIfAny();
+
     HydrationJob initNewJob();
 
     void updateJobStatus(HydrationJob job, HydrationStatus status);

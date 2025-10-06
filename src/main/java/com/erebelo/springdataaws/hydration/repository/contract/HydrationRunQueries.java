@@ -19,7 +19,7 @@ public class HydrationRunQueries {
     private static final String HYDRATION_RUNS_QUERY_TEMPLATE = """
                SELECT *
                FROM ${db}.${hydrationRuns}
-               WHERE run_number = ${runNumber}
+               WHERE run_number = '${runNumber}'
                LIMIT 1;
             """;
 

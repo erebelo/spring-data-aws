@@ -13,6 +13,6 @@ public interface HydrationEngineService {
 
     void executeJob(HydrationJob job, RecordTypeEnum... recordTypes);
 
-    void fetchAndHydrate(HydrationService<? extends RecordDto> service, HydrationJob job, HydrationStep step);
+    void fetchAndHydrate(HydrationService<? extends RecordDto> service, HydrationStep step);
 
 }

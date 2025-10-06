@@ -23,10 +23,10 @@ public class HydrationEngineScheduledService {
 
     @Scheduled(fixedRateString = "${hydration.scheduler.fixed-rate}")
     public void scheduledTrigger() {
+        log.info("Hydration triggered by scheduler");
         HydrationJob job = hydrationEngineService.initJobIfNoneRunning();
 
         if (job != null) {
-            log.info("Hydration triggered by scheduler");
             hydrationEngineService.executeJob(job);
         }
     }

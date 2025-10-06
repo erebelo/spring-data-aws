@@ -58,7 +58,9 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
      */
     @Override
     public String triggerHydration(RecordTypeEnum... recordTypes) {
+        log.info("Hydration triggered");
         HydrationJob job = initJobIfNoneRunning();
+
         if (job != null) {
             // Capture the current logging context
             Map<String, String> loggingContext = MDC.getCopyOfContextMap();
@@ -69,7 +71,6 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
                     MDC.setContextMap(loggingContext);
                 }
                 try {
-                    log.info("Hydration triggered");
                     executeJob(job, recordTypes);
                 } finally {
                     // Clear the logging context after the task completes
@@ -86,14 +87,30 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
     @Override
     public HydrationJob initJobIfNoneRunning() {
         if (!hydrationJobService.existsInitiatedOrProcessingJob()) {
+            log.info("Initializing new job");
             return hydrationJobService.initNewJob();
         }
+
+        HydrationJob currentJob = hydrationJobService.getCurrentJob();
+        String jobId = currentJob != null ? currentJob.getId() : "unknown";
+
+        if (hydrationJobService.cancelStuckJobsIfAny()) {
+            log.info(
+                    "Hydration job {} has been running for more than 10 minutes and will be canceled along with its steps",
+                    jobId);
+            log.info("Initializing new job");
+            return hydrationJobService.initNewJob();
+        }
+
+        log.info("There is still an ongoing hydration process with job: {}", jobId);
         return null;
     }
 
     @Override
     public void executeJob(HydrationJob job, RecordTypeEnum... recordTypes) {
         log.info("Starting to execute job: {}", job.getId());
+        hydrationJobService.updateJobStatus(job, HydrationStatus.PROCESSING);
+
         List<RecordTypeEnum> filteringTypes = Arrays.asList(recordTypes);
         List<HydrationService<? extends RecordDto>> servicesToRun = ObjectUtils.isEmpty(filteringTypes)
                 ? hydrationPipeline
@@ -103,7 +120,7 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
             HydrationStep step = hydrationStepService.initNewStep(service.getRecordType(), job.getId());
 
             try {
-                selfProxy.fetchAndHydrate(service, job, step);
+                selfProxy.fetchAndHydrate(service, step);
                 hydrationStepService.updateStepStatus(step, HydrationStatus.COMPLETED);
             } catch (Exception e) {
                 log.error("Error occurred while processing job: {}", job.getId(), e);
@@ -119,13 +136,12 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
 
     @Override
     @Transactional
-    public void fetchAndHydrate(HydrationService<? extends RecordDto> service, HydrationJob job, HydrationStep step) {
+    public void fetchAndHydrate(HydrationService<? extends RecordDto> service, HydrationStep step) {
         Pair<String, Iterable<GetQueryResultsResponse>> responses = service
                 .fetchDataFromAthena(service.getDeltaQuery());
 
         step.setExecutionId(responses.getLeft());
         hydrationStepService.updateStepStatus(step, HydrationStatus.PROCESSING);
-        hydrationJobService.updateJobStatus(job, HydrationStatus.PROCESSING);
 
         AtomicBoolean headerProcessed = new AtomicBoolean(false);
         AtomicReference<String[]> athenaColumnOrder = new AtomicReference<>();

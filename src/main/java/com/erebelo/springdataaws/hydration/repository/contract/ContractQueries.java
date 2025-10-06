@@ -20,13 +20,13 @@ public class ContractQueries {
     private static final String ADVISOR_CONTRACTS_QUERY_TEMPLATE = """
                SELECT ROW_NUMBER() OVER () AS record_id, *
                FROM ${db}.${advisorContracts}
-               WHERE run_number = ${runNumber};
+               WHERE run_number = '${runNumber}';
             """;
 
     private static final String FIRM_CONTRACTS_QUERY_TEMPLATE = """
                SELECT ROW_NUMBER() OVER () AS record_id, *
                FROM ${db}.${firmContracts}
-               WHERE run_number = ${runNumber};
+               WHERE run_number = '${runNumber}';
             """;
 
     private final PropertyPlaceholderHelper placeholderHelper = new PropertyPlaceholderHelper("${", "}");

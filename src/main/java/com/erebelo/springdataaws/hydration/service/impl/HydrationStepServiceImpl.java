@@ -6,6 +6,7 @@ import com.erebelo.springdataaws.hydration.domain.model.HydrationStep;
 import com.erebelo.springdataaws.hydration.repository.HydrationStepRepository;
 import com.erebelo.springdataaws.hydration.service.HydrationStepService;
 import java.time.Instant;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -34,5 +35,23 @@ public class HydrationStepServiceImpl implements HydrationStepService {
         }
 
         repository.save(step);
+    }
+
+    @Override
+    public void cancelActiveStepsByJobId(String jobId) {
+        List<HydrationStep> activeSteps = repository.findAllByJobIdAndStatusIn(jobId,
+                List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING));
+
+        if (activeSteps.isEmpty()) {
+            return;
+        }
+
+        Instant now = Instant.now();
+        activeSteps.forEach(step -> {
+            step.setStatus(HydrationStatus.CANCELED);
+            step.setEndTime(now);
+        });
+
+        repository.saveAll(activeSteps);
     }
 }

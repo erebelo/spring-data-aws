@@ -10,4 +10,6 @@ public interface HydrationStepService {
 
     void updateStepStatus(HydrationStep step, HydrationStatus status);
 
+    void cancelActiveStepsByJobId(String jobId);
+
 }

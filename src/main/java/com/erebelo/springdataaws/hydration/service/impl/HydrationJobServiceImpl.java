@@ -7,7 +7,9 @@ import com.erebelo.springdataaws.hydration.domain.model.HydrationJob;
 import com.erebelo.springdataaws.hydration.repository.HydrationJobRepository;
 import com.erebelo.springdataaws.hydration.repository.contract.HydrationRunQueries;
 import com.erebelo.springdataaws.hydration.service.HydrationJobService;
+import com.erebelo.springdataaws.hydration.service.HydrationStepService;
 import com.erebelo.springdataaws.service.AthenaService;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
@@ -23,12 +25,15 @@ import software.amazon.awssdk.services.athena.model.Row;
 public class HydrationJobServiceImpl implements HydrationJobService {
 
     private final AthenaService athenaService;
+    private final HydrationStepService hydrationStepService;
     private final HydrationJobRepository repository;
     private final HydrationRunQueries hydrationRunQueries;
 
     public HydrationJobServiceImpl(@Qualifier("hydrationAthenaService") AthenaService athenaService,
-            HydrationJobRepository repository, HydrationRunQueries hydrationRunQueries) {
+            HydrationStepService hydrationStepService, HydrationJobRepository repository,
+            HydrationRunQueries hydrationRunQueries) {
         this.athenaService = athenaService;
+        this.hydrationStepService = hydrationStepService;
         this.repository = repository;
         this.hydrationRunQueries = hydrationRunQueries;
     }
@@ -39,6 +44,37 @@ public class HydrationJobServiceImpl implements HydrationJobService {
     @Override
     public boolean existsInitiatedOrProcessingJob() {
         return repository.existsByStatusIn(List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING));
+    }
+
+    @Override
+    public boolean cancelStuckJobsIfAny() {
+        Optional<HydrationJob> lastActiveJob = repository
+                .findTopByStatusInOrderByRunNumberDesc(List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING));
+
+        if (lastActiveJob.isEmpty()) {
+            return false;
+        }
+
+        HydrationJob job = lastActiveJob.get();
+        Instant now = Instant.now();
+        // Check if more than 10 minutes have passed since the job started
+        boolean isStuck = job.getStartTime() != null && Duration.between(job.getStartTime(), now).toMinutes() > 10;
+
+        if (!isStuck) {
+            return false;
+        }
+
+        hydrationStepService.cancelActiveStepsByJobId(job.getId());
+
+        job.setStatus(HydrationStatus.CANCELED);
+        job.setEndTime(now);
+        repository.save(job);
+
+        // TODO Attempt to interrupt any running thread associated with this job
+        // interruptJobThread(job.getId());
+
+        this.currentJob = null;
+        return true;
     }
 
     @Override
