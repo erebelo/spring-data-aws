@@ -17,10 +17,12 @@ import com.erebelo.springdataaws.service.impl.AthenaServiceImpl;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -289,6 +291,69 @@ class AthenaServiceTest {
     }
 
     @Test
+    void testMapRowsToClassWithSuperClassInheritanceSuccessful() {
+        Row row = Row.builder()
+                .data(Datum.builder().varCharValue("1").build(), Datum.builder().varCharValue("first").build(), // duplicate
+                        // name
+                        Datum.builder().varCharValue("10").build(), Datum.builder().varCharValue("second").build(),
+                        Datum.builder().varCharValue("val1").build(),
+                        Datum.builder().varCharValue("2025-10-02").build())
+                .build();
+
+        List<TestEntity> result = service.mapRowsToClass(
+                new String[]{"record_id", "name", "id", "name", "value", "start_date"}, List.of(row), TestEntity.class);
+
+        assertEquals(1, result.size());
+        assertEquals("1", result.getFirst().getRecordId());
+        assertEquals("10", result.getFirst().getId());
+        assertEquals("second", result.getFirst().getName());
+        assertEquals("val1", result.getFirst().getValue());
+        assertEquals(LocalDate.of(2025, 10, 2), result.getFirst().getStartDate());
+    }
+
+    @Test
+    void testMapRowsToClassWithMissingColumnNamesThrowsIllegalArgumentException() {
+        Row row = Row.builder()
+                .data(Datum.builder().varCharValue("1").build(), Datum.builder().varCharValue("10").build(),
+                        Datum.builder().varCharValue("second").build(), Datum.builder().varCharValue("val1").build(),
+                        Datum.builder().varCharValue("2025-10" + "-02").build())
+                .build();
+
+        List<Row> rows = List.of(row);
+        String[] athenaColumnOrder = new String[]{"record_id", "id", "name", "value"};
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.mapRowsToClass(athenaColumnOrder, rows, TestEntity.class));
+
+        assertEquals(String.format("Row has %d values but expected %d columns: %s", row.data().size(),
+                athenaColumnOrder.length, Arrays.toString(athenaColumnOrder)), exception.getMessage());
+    }
+
+    @Test
+    void testMapRowsToClassWithMissingRowDataThrowsIllegalArgumentException() {
+        Row row1 = Row.builder()
+                .data(Datum.builder().varCharValue("1").build(), Datum.builder().varCharValue("10").build(),
+                        Datum.builder().varCharValue("first").build(), Datum.builder().varCharValue("val1").build(),
+                        Datum.builder().varCharValue("2025-10" + "-02").build())
+                .build();
+
+        Row row2 = Row.builder()
+                .data(Datum.builder().varCharValue("2").build(), Datum.builder().varCharValue("20").build(),
+                        Datum.builder().varCharValue("second").build(),
+                        Datum.builder().varCharValue("2025-10-12").build())
+                .build();
+
+        List<Row> rows = List.of(row1, row2);
+        String[] athenaColumnOrder = new String[]{"record_id", "id", "name", "value", "start_date"};
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> service.mapRowsToClass(athenaColumnOrder, rows, TestEntity.class));
+
+        assertEquals(String.format("Row has %d values but expected %d columns: %s", rows.get(1).data().size(),
+                athenaColumnOrder.length, Arrays.toString(athenaColumnOrder)), exception.getMessage());
+    }
+
+    @Test
     void testMapRowsToClassHandlesNullRows() {
         List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "start_date"}, null,
                 TestEntity.class);
@@ -304,28 +369,23 @@ class AthenaServiceTest {
         assertEquals(0, result.size());
     }
 
-    @Test
-    void testMapRowsToClassHandlesMissingValues() {
-        Datum d1 = Datum.builder().varCharValue("123").build();
-        Row row = Row.builder().data(d1).build();
-
-        List<TestEntity> result = service.mapRowsToClass(new String[]{"id", "name", "value", "start_date"},
-                List.of(row), TestEntity.class);
-
-        assertEquals(1, result.size());
-        TestEntity entity = result.getFirst();
-        assertEquals("123", entity.getId());
-        assertNull(entity.getName());
-        assertNull(entity.getValue());
-    }
-
     @Getter
-    @Setter
-    static class TestEntity {
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class TestEntity extends TestSuperEntity {
         private String id;
         private String name;
         private String value;
         @JsonProperty("start_date")
         private LocalDate startDate;
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class TestSuperEntity {
+        @JsonProperty("record_id")
+        private String recordId;
+        private String name; // duplicate attribute
     }
 }

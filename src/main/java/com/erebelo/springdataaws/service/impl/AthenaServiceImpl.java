@@ -148,6 +148,11 @@ public class AthenaServiceImpl implements AthenaService {
             List<Datum> allData = row.data();
             Map<String, Object> fieldMap = new LinkedHashMap<>();
 
+            if (allData.size() != normalizedColumns.size()) {
+                throw new IllegalArgumentException(String.format("Row has %d values but expected %d columns: %s",
+                        allData.size(), normalizedColumns.size(), normalizedColumns));
+            }
+
             for (int i = 0; i < normalizedColumns.size(); i++) {
                 String key = normalizedColumns.get(i);
                 String rawValue = (i < allData.size() && allData.get(i) != null) ? allData.get(i).varCharValue() : null;
