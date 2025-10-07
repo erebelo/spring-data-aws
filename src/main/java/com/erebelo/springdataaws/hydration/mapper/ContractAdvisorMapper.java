@@ -12,6 +12,7 @@ public interface ContractAdvisorMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "legacyId", source = "id")
+    @Mapping(target = "recordId", ignore = true)
     ContractAdvisor dtoToEntity(ContractAdvisorDto dto);
 
 }

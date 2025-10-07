@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.services.athena.AthenaClient;
@@ -142,13 +141,8 @@ public class AthenaServiceImpl implements AthenaService {
         }
 
         List<String> normalizedColumns = Arrays.stream(athenaColumnOrder).toList();
+        Map<String, Field> fieldTypes = getAllFieldTypes(clazz);
         List<T> result = new ArrayList<>(rows.size());
-
-        // Build map of column name to field, using @JsonProperty if present
-        Map<String, Field> fieldTypes = Arrays.stream(clazz.getDeclaredFields()).collect(Collectors.toMap(f -> {
-            JsonProperty prop = f.getAnnotation(JsonProperty.class);
-            return (prop != null && !prop.value().isEmpty()) ? prop.value() : f.getName();
-        }, f -> f));
 
         for (Row row : rows) {
             List<Datum> allData = row.data();
@@ -173,5 +167,30 @@ public class AthenaServiceImpl implements AthenaService {
         }
 
         return result;
+    }
+
+    /*
+     * Retrieves all declared fields types from the class and superclasses,
+     * excluding Object.class, and maps them by column name. Considers @JsonProperty
+     * and ignores duplicates (keeps the first occurrence).
+     */
+    private static Map<String, Field> getAllFieldTypes(Class<?> clazz) {
+        Map<String, Field> fieldMap = new LinkedHashMap<>();
+        Class<?> current = clazz;
+
+        while (current != null && current != Object.class) {
+            for (Field field : current.getDeclaredFields()) {
+                String name = field.getName();
+                JsonProperty prop = field.getAnnotation(JsonProperty.class);
+                if (prop != null && !prop.value().isEmpty()) {
+                    name = prop.value();
+                }
+                // putIfAbsent ensures we keep the first occurrence and ignore duplicates
+                fieldMap.putIfAbsent(name, field);
+            }
+            current = current.getSuperclass();
+        }
+
+        return fieldMap;
     }
 }

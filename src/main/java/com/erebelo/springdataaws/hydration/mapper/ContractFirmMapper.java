@@ -12,6 +12,7 @@ public interface ContractFirmMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "legacyId", source = "id")
+    @Mapping(target = "recordId", ignore = true)
     ContractFirm dtoToEntity(ContractFirmDto dto);
 
 }

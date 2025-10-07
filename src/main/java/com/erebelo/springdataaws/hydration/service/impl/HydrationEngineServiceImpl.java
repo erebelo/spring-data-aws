@@ -131,6 +131,7 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
             }
         }
 
+        log.info("Hydration completed");
         hydrationJobService.updateJobStatus(job, HydrationStatus.COMPLETED);
     }
 
