@@ -152,6 +152,16 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
         hydrationJobService.updateJobStatus(job, HydrationStatus.COMPLETED);
     }
 
+    /*
+     * Must be public for @Transactional to work. Since it's called from within the
+     * same class, we invoke it via selfProxy to ensure Spring applies the
+     * transaction proxy.
+     *
+     * The hydrateDomainData method runs in this @Transactional context, but
+     * service.saveHydrationFailedRecord uses @Transactional(propagation =
+     * Propagation.REQUIRES_NEW) to create a separate transaction for failure logs,
+     * ensuring they are persisted even if the main transaction rolls back.
+     */
     @Override
     @Transactional
     public void fetchAndHydrate(HydrationService<? extends RecordDto> service, HydrationStep step) {
