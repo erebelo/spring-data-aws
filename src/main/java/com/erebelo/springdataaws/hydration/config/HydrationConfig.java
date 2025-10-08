@@ -30,12 +30,12 @@ public class HydrationConfig {
      * them for threads.
      */
     @Bean
-    public Executor asyncTaskExecutor() {
+    public Executor hydrationAsyncTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(10);
-        executor.setQueueCapacity(25);
-        executor.setThreadNamePrefix("Hyd-Executor-");
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(1);
+        executor.setThreadNamePrefix("Manual-Hyd-");
         executor.initialize();
         return executor;
     }
@@ -49,8 +49,8 @@ public class HydrationConfig {
     @Bean
     public ThreadPoolTaskScheduler taskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(2);
-        scheduler.setThreadNamePrefix("Hyd-Scheduler-");
+        scheduler.setPoolSize(1);
+        scheduler.setThreadNamePrefix("Scheduler-Hyd-");
         scheduler.initialize();
         return scheduler;
     }

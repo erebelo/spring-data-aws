@@ -16,13 +16,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,24 +35,29 @@ import software.amazon.awssdk.services.athena.model.Row;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class HydrationEngineServiceImpl implements HydrationEngineService {
+
+    // Returns the Spring proxy to enable @Transactional on internal calls.
+    // @Lazy is required to avoid circular dependency during injection
+    private final HydrationEngineService selfProxy;
 
     private final List<HydrationService<? extends RecordDto>> hydrationPipeline;
     private final HydrationJobService hydrationJobService;
     private final HydrationStepService hydrationStepService;
     private final Executor asyncTaskExecutor;
+    private final long hydrationThresholdMinutes;
 
-    /*
-     * Returns the Spring proxy to enable @Transactional on internal calls.
-     * 
-     * @Lazy is required to avoid circular dependency during injection.
-     */
-    private HydrationEngineService selfProxy;
-
-    @Autowired
-    public void setSelfProxy(@Lazy HydrationEngineService selfProxy) {
+    public HydrationEngineServiceImpl(@Lazy HydrationEngineService selfProxy,
+            List<HydrationService<? extends RecordDto>> hydrationPipeline, HydrationJobService hydrationJobService,
+            HydrationStepService hydrationStepService,
+            @Qualifier("hydrationAsyncTaskExecutor") Executor hydrationAsyncTaskExecutor,
+            @Value("${hydration.threshold.minutes:10}") long hydrationThresholdMinutes) {
         this.selfProxy = selfProxy;
+        this.hydrationPipeline = hydrationPipeline;
+        this.hydrationJobService = hydrationJobService;
+        this.hydrationStepService = hydrationStepService;
+        this.asyncTaskExecutor = hydrationAsyncTaskExecutor;
+        this.hydrationThresholdMinutes = hydrationThresholdMinutes;
     }
 
     /*
@@ -61,27 +68,48 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
         log.info("Hydration triggered");
         HydrationJob job = initJobIfNoneRunning();
 
-        if (job != null) {
-            // Capture the current logging context
-            Map<String, String> loggingContext = MDC.getCopyOfContextMap();
-
-            CompletableFuture.runAsync(() -> {
-                if (loggingContext != null) {
-                    // Restore the logging context in the asynchronous task
-                    MDC.setContextMap(loggingContext);
-                }
-                try {
-                    executeJob(job, recordTypes);
-                } finally {
-                    // Clear the logging context after the task completes
-                    MDC.clear();
-                }
-            }, asyncTaskExecutor);
-
-            return job.getId();
+        if (job == null) {
+            return hydrationJobService.getCurrentJob().getId();
         }
 
-        return hydrationJobService.getCurrentJob().getId();
+        AtomicReference<Thread> workerThreadRef = new AtomicReference<>();
+        Map<String, String> loggingContext = MDC.getCopyOfContextMap();
+
+        CompletableFuture.runAsync(() -> {
+            workerThreadRef.set(Thread.currentThread());
+
+            if (loggingContext != null) {
+                MDC.setContextMap(loggingContext);
+            }
+
+            try {
+                executeJob(job, recordTypes);
+            } finally {
+                MDC.clear();
+            }
+        }, asyncTaskExecutor).orTimeout(hydrationThresholdMinutes, TimeUnit.MINUTES).exceptionally(ex -> {
+            if (ex instanceof TimeoutException) {
+                log.error("Hydration job {} exceeded {} minutes. Cancelling...", job.getId(),
+                        hydrationThresholdMinutes);
+                hydrationJobService.cancelStuckJobsAndStepsIfAny();
+
+                Thread workerThread = workerThreadRef.get();
+                if (workerThread != null && workerThread.isAlive()) {
+                    workerThread.interrupt();
+                }
+            } else if (ex instanceof InterruptedException) {
+                log.error("Hydration job {} thread was interrupted", job.getId());
+                hydrationJobService.cancelStuckJobsAndStepsIfAny();
+
+                Thread workerThread = workerThreadRef.get();
+                if (workerThread != null && workerThread.isAlive()) {
+                    workerThread.interrupt();
+                }
+            }
+            return null;
+        });
+
+        return job.getId();
     }
 
     @Override
@@ -91,18 +119,8 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
             return hydrationJobService.initNewJob();
         }
 
-        HydrationJob currentJob = hydrationJobService.getCurrentJob();
-        String jobId = currentJob != null ? currentJob.getId() : "unknown";
-
-        if (hydrationJobService.cancelStuckJobsIfAny()) {
-            log.info(
-                    "Hydration job {} has been running for more than 10 minutes and will be canceled along with its steps",
-                    jobId);
-            log.info("Initializing new job");
-            return hydrationJobService.initNewJob();
-        }
-
-        log.info("There is still an ongoing hydration process with job: {}", jobId);
+        log.info("There is still an ongoing hydration process with job: {}",
+                hydrationJobService.getCurrentJob().getId());
         return null;
     }
 

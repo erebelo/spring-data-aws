@@ -9,7 +9,7 @@ public interface HydrationJobService {
 
     boolean existsInitiatedOrProcessingJob();
 
-    boolean cancelStuckJobsIfAny();
+    void cancelStuckJobsAndStepsIfAny();
 
     HydrationJob initNewJob();
 

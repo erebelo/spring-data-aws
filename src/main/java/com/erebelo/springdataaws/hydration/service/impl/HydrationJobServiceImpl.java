@@ -9,7 +9,6 @@ import com.erebelo.springdataaws.hydration.repository.contract.HydrationRunQueri
 import com.erebelo.springdataaws.hydration.service.HydrationJobService;
 import com.erebelo.springdataaws.hydration.service.HydrationStepService;
 import com.erebelo.springdataaws.service.AthenaService;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.List;
@@ -47,34 +46,23 @@ public class HydrationJobServiceImpl implements HydrationJobService {
     }
 
     @Override
-    public boolean cancelStuckJobsIfAny() {
+    public void cancelStuckJobsAndStepsIfAny() {
         Optional<HydrationJob> lastActiveJob = repository
                 .findTopByStatusInOrderByRunNumberDesc(List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING));
 
         if (lastActiveJob.isEmpty()) {
-            return false;
+            this.currentJob = null;
+            return;
         }
 
-        HydrationJob job = lastActiveJob.get();
         Instant now = Instant.now();
-        // Check if more than 10 minutes have passed since the job started
-        boolean isStuck = job.getStartTime() != null && Duration.between(job.getStartTime(), now).toMinutes() > 10;
-
-        if (!isStuck) {
-            return false;
-        }
-
-        hydrationStepService.cancelActiveStepsByJobId(job.getId());
-
+        HydrationJob job = lastActiveJob.get();
         job.setStatus(HydrationStatus.CANCELED);
         job.setEndTime(now);
+
+        hydrationStepService.cancelActiveStepsByJobId(job.getId(), now);
         repository.save(job);
-
-        // TODO Attempt to interrupt any running thread associated with this job
-        // interruptJobThread(job.getId());
-
         this.currentJob = null;
-        return true;
     }
 
     @Override

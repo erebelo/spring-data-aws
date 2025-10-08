@@ -29,9 +29,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.athena.model.Datum;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
@@ -39,12 +39,18 @@ import software.amazon.awssdk.services.athena.model.Row;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AddressServiceImpl implements AddressService {
 
     private final AthenaService athenaService;
     private final S3Service s3Service;
     private final Executor asyncTaskExecutor;
+
+    public AddressServiceImpl(AthenaService athenaService, S3Service s3Service,
+            @Qualifier("asyncTaskExecutor") Executor asyncTaskExecutor) {
+        this.athenaService = athenaService;
+        this.s3Service = s3Service;
+        this.asyncTaskExecutor = asyncTaskExecutor;
+    }
 
     private static final List<String> ADDRESS_FIELD_NAMES = Arrays.stream(AddressDto.class.getDeclaredFields())
             .map(field -> field.getName().toLowerCase()).toList();

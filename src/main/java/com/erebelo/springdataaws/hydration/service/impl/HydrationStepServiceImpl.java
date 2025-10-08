@@ -17,7 +17,7 @@ public class HydrationStepServiceImpl implements HydrationStepService {
     private final HydrationStepRepository repository;
 
     @Override
-    public void cancelActiveStepsByJobId(String jobId) {
+    public void cancelActiveStepsByJobId(String jobId, Instant now) {
         List<HydrationStep> activeSteps = repository.findAllByJobIdAndStatusIn(jobId,
                 List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING));
 
@@ -25,7 +25,6 @@ public class HydrationStepServiceImpl implements HydrationStepService {
             return;
         }
 
-        Instant now = Instant.now();
         activeSteps.forEach(step -> {
             step.setStatus(HydrationStatus.CANCELED);
             step.setEndTime(now);
