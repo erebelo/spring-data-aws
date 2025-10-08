@@ -48,6 +48,8 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
     private final Executor asyncTaskExecutor;
     private final long hydrationThresholdMinutes;
 
+    private final AtomicReference<Thread> workerThreadRef = new AtomicReference<>();
+
     public HydrationEngineServiceImpl(@Lazy HydrationEngineService selfProxy,
             List<HydrationService<? extends RecordDto>> hydrationPipeline, HydrationJobService hydrationJobService,
             HydrationStepService hydrationStepService,
@@ -80,7 +82,6 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
 
         HydrationJob job = Optional.ofNullable(hydrationJobService.getCurrentJob())
                 .orElseGet(() -> HydrationJob.builder().id("unknown").build());
-        AtomicReference<Thread> workerThreadRef = new AtomicReference<>();
         Map<String, String> loggingContext = MDC.getCopyOfContextMap();
 
         CompletableFuture.runAsync(() -> {
@@ -100,20 +101,15 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
                 log.error("Hydration job {} exceeded {} minutes. Cancelling...", job.getId(),
                         hydrationThresholdMinutes);
                 hydrationJobService.cancelStuckJobsAndStepsIfAny();
-
-                Thread workerThread = workerThreadRef.get();
-                if (workerThread != null && workerThread.isAlive()) {
-                    workerThread.interrupt();
-                }
             } else if (ex instanceof InterruptedException) {
                 log.error("Hydration job {} thread was interrupted", job.getId());
                 hydrationJobService.cancelStuckJobsAndStepsIfAny();
-
-                Thread workerThread = workerThreadRef.get();
-                if (workerThread != null && workerThread.isAlive()) {
-                    workerThread.interrupt();
-                }
             }
+
+            if (workerThreadRef.get().isAlive()) {
+                workerThreadRef.get().interrupt();
+            }
+
             return null;
         });
 
@@ -130,12 +126,20 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
                 : hydrationPipeline.stream().filter(s -> filteringTypes.contains(s.getRecordType())).toList();
 
         for (HydrationService<? extends RecordDto> service : servicesToRun) {
+            if (isThreadInterrupted()) {
+                return;
+            }
+
             HydrationStep step = hydrationStepService.initNewStep(service.getRecordType(), job.getId());
 
             try {
                 selfProxy.fetchAndHydrate(service, step);
                 hydrationStepService.updateStepStatus(step, HydrationStatus.COMPLETED);
             } catch (Exception e) {
+                if (isThreadInterrupted()) {
+                    return;
+                }
+
                 log.error("Error occurred while processing job: {}", job.getId(), e);
                 hydrationStepService.updateStepStatus(step, HydrationStatus.FAILED);
                 hydrationJobService.updateJobStatus(job, HydrationStatus.FAILED);
@@ -151,6 +155,10 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
     @Override
     @Transactional
     public void fetchAndHydrate(HydrationService<? extends RecordDto> service, HydrationStep step) {
+        if (isThreadInterrupted()) {
+            return;
+        }
+
         Pair<String, Iterable<GetQueryResultsResponse>> responses = service
                 .fetchDataFromAthena(service.getDeltaQuery());
 
@@ -181,6 +189,10 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
         List<T> dataRecords = service.mapRowsToDomainData(athenaColumnOrder, rows);
 
         for (T dataRecord : dataRecords) {
+            if (isThreadInterrupted()) {
+                return;
+            }
+
             try {
                 T hydratedRecord = service.hydrateDomainData(dataRecord);
                 hydratedRecord.setRecordId(dataRecord.getRecordId());
@@ -202,5 +214,10 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
             return rows.size() > 1 ? rows.subList(1, rows.size()) : Collections.emptyList();
         }
         return rows;
+    }
+
+    private boolean isThreadInterrupted() {
+        Thread t = workerThreadRef.get();
+        return t != null && t.isInterrupted();
     }
 }
