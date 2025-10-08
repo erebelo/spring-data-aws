@@ -42,31 +42,13 @@ public class HydrationJobServiceImpl implements HydrationJobService {
 
     @Override
     public boolean existsInitiatedOrProcessingJob() {
-        return repository.existsByStatusIn(List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING));
+        return repository
+                .findTopByStatusInOrderByRunNumberDesc(List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING))
+                .isPresent();
     }
 
     @Override
-    public void cancelStuckJobsAndStepsIfAny() {
-        Optional<HydrationJob> lastActiveJob = repository
-                .findTopByStatusInOrderByRunNumberDesc(List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING));
-
-        if (lastActiveJob.isEmpty()) {
-            this.currentJob = null;
-            return;
-        }
-
-        Instant now = Instant.now();
-        HydrationJob job = lastActiveJob.get();
-        job.setStatus(HydrationStatus.CANCELED);
-        job.setEndTime(now);
-
-        hydrationStepService.cancelActiveStepsByJobId(job.getId(), now);
-        repository.save(job);
-        this.currentJob = null;
-    }
-
-    @Override
-    public HydrationJob initNewJob() {
+    public void initNewJob() {
         Optional<HydrationJob> lastJobRun = repository
                 .findTopByStatusInOrderByRunNumberDesc(List.of(HydrationStatus.COMPLETED, HydrationStatus.FAILED));
 
@@ -82,21 +64,38 @@ public class HydrationJobServiceImpl implements HydrationJobService {
 
         repository.save(newJob);
         this.currentJob = newJob;
-
-        return newJob;
     }
 
     @Override
     public void updateJobStatus(HydrationJob job, HydrationStatus status) {
         job.setStatus(status);
-        this.currentJob = job;
 
-        if (HydrationStatus.FAILED == status || HydrationStatus.COMPLETED == status) {
+        boolean isTerminal = (status == HydrationStatus.FAILED || status == HydrationStatus.COMPLETED);
+        if (isTerminal) {
             job.setEndTime(Instant.now());
-            this.currentJob = null;
         }
 
+        HydrationJob updateJob = repository.save(job);
+        this.currentJob = isTerminal ? null : updateJob;
+    }
+
+    @Override
+    public void cancelStuckJobsAndStepsIfAny() {
+        Optional<HydrationJob> lastActiveJob = repository
+                .findTopByStatusInOrderByRunNumberDesc(List.of(HydrationStatus.INITIATED, HydrationStatus.PROCESSING));
+
+        if (lastActiveJob.isEmpty()) {
+            return;
+        }
+
+        Instant now = Instant.now();
+        HydrationJob job = lastActiveJob.get();
+        job.setStatus(HydrationStatus.CANCELED);
+        job.setEndTime(now);
+
+        hydrationStepService.cancelActiveStepsByJobId(job.getId(), now);
         repository.save(job);
+        this.currentJob = null;
     }
 
     private HydrationRunDto fetchHydrationRunFromAthena(Long runNumber) {

@@ -10,8 +10,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface HydrationJobRepository extends MongoRepository<HydrationJob, String> {
 
-    boolean existsByStatusIn(Collection<HydrationStatus> statuses);
-
     Optional<HydrationJob> findTopByStatusInOrderByRunNumberDesc(Collection<HydrationStatus> statuses);
 
 }

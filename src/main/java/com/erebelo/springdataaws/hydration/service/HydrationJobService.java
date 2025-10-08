@@ -9,10 +9,10 @@ public interface HydrationJobService {
 
     boolean existsInitiatedOrProcessingJob();
 
-    void cancelStuckJobsAndStepsIfAny();
-
-    HydrationJob initNewJob();
+    void initNewJob();
 
     void updateJobStatus(HydrationJob job, HydrationStatus status);
+
+    void cancelStuckJobsAndStepsIfAny();
 
 }

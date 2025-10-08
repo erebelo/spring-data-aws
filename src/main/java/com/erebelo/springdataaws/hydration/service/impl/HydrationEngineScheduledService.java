@@ -1,6 +1,5 @@
 package com.erebelo.springdataaws.hydration.service.impl;
 
-import com.erebelo.springdataaws.hydration.domain.model.HydrationJob;
 import com.erebelo.springdataaws.hydration.service.HydrationEngineService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,16 +21,14 @@ public class HydrationEngineScheduledService {
     private final HydrationEngineService hydrationEngineService;
 
     /*
-     * Ensures only one execution runs at a time. If a job is still running, the
-     * next scheduled run is skipped
+     * Ensures that only one hydration job runs at a time. The scheduled method is
+     * triggered according to the cron expression. If a previous job is still
+     * running when the next trigger occurs, that execution is skipped, preventing
+     * concurrent processing.
      */
     @Scheduled(cron = "${hydration.scheduled.cron:0 */15 * * * *}")
     public void scheduledTrigger() {
         log.info("Hydration triggered by scheduler");
-        HydrationJob job = hydrationEngineService.initJobIfNoneRunning();
-
-        if (job != null) {
-            hydrationEngineService.executeJob(job);
-        }
+        hydrationEngineService.triggerHydration();
     }
 }

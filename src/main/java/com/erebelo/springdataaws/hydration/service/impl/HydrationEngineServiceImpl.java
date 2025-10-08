@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -66,12 +67,19 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
     @Override
     public String triggerHydration(RecordTypeEnum... recordTypes) {
         log.info("Hydration triggered");
-        HydrationJob job = initJobIfNoneRunning();
 
-        if (job == null) {
-            return hydrationJobService.getCurrentJob().getId();
+        if (hydrationJobService.existsInitiatedOrProcessingJob()) {
+            String jobId = Optional.ofNullable(hydrationJobService.getCurrentJob()).map(HydrationJob::getId)
+                    .orElse("unknown");
+            log.info("There is still an ongoing hydration process with job: {}", jobId);
+            return jobId;
         }
 
+        log.info("Initializing new job");
+        hydrationJobService.initNewJob();
+
+        HydrationJob job = Optional.ofNullable(hydrationJobService.getCurrentJob())
+                .orElseGet(() -> HydrationJob.builder().id("unknown").build());
         AtomicReference<Thread> workerThreadRef = new AtomicReference<>();
         Map<String, String> loggingContext = MDC.getCopyOfContextMap();
 
@@ -112,20 +120,7 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
         return job.getId();
     }
 
-    @Override
-    public HydrationJob initJobIfNoneRunning() {
-        if (!hydrationJobService.existsInitiatedOrProcessingJob()) {
-            log.info("Initializing new job");
-            return hydrationJobService.initNewJob();
-        }
-
-        log.info("There is still an ongoing hydration process with job: {}",
-                hydrationJobService.getCurrentJob().getId());
-        return null;
-    }
-
-    @Override
-    public void executeJob(HydrationJob job, RecordTypeEnum... recordTypes) {
+    private void executeJob(HydrationJob job, RecordTypeEnum... recordTypes) {
         log.info("Starting to execute job: {}", job.getId());
         hydrationJobService.updateJobStatus(job, HydrationStatus.PROCESSING);
 

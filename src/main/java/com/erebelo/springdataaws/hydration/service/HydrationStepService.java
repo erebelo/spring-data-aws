@@ -7,10 +7,10 @@ import java.time.Instant;
 
 public interface HydrationStepService {
 
-    void cancelActiveStepsByJobId(String jobId, Instant now);
-
     HydrationStep initNewStep(RecordTypeEnum recordType, String jobId);
 
     void updateStepStatus(HydrationStep step, HydrationStatus status);
+
+    void cancelActiveStepsByJobId(String jobId, Instant now);
 
 }
