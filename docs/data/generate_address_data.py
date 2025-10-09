@@ -7,7 +7,7 @@ import string
 fake = Faker('en_US')
 
 # Define the number of records
-num_records = 1200000
+num_records = 5000
 
 # Define the CSV file name
 csv_file_name = 'legacy_addresses.csv'

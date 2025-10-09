@@ -11,6 +11,8 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class QueryMapping {
 
+    // TODO pass db and table name as parameter
+
     private static final Map<String, String> QUERIES;
 
     static {

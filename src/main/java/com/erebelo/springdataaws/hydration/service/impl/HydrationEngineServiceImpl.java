@@ -1,5 +1,6 @@
 package com.erebelo.springdataaws.hydration.service.impl;
 
+import com.erebelo.springdataaws.hydration.domain.dto.HydrationContextDto;
 import com.erebelo.springdataaws.hydration.domain.dto.RecordDto;
 import com.erebelo.springdataaws.hydration.domain.enumeration.HydrationStatus;
 import com.erebelo.springdataaws.hydration.domain.enumeration.RecordTypeEnum;
@@ -10,7 +11,6 @@ import com.erebelo.springdataaws.hydration.service.HydrationJobService;
 import com.erebelo.springdataaws.hydration.service.HydrationService;
 import com.erebelo.springdataaws.hydration.service.HydrationStepService;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -19,7 +19,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
@@ -30,7 +29,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
-import software.amazon.awssdk.services.athena.model.Datum;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 import software.amazon.awssdk.services.athena.model.Row;
 
@@ -169,16 +167,17 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
             return;
         }
 
-        Pair<String, Iterable<GetQueryResultsResponse>> responses = service
+        Pair<String, Iterable<GetQueryResultsResponse>> responsePair = service
                 .fetchDataFromAthena(service.getDeltaQuery());
+        HydrationContextDto context = HydrationContextDto.builder().headerProcessed(false).athenaColumnOrder(null)
+                .build();
+        log.info("Processing query results to hydrate {} data. Execution ID='{}'", service.getRecordType().getValue(),
+                responsePair.getLeft());
 
-        step.setExecutionId(responses.getLeft());
+        step.setExecutionId(responsePair.getLeft());
         hydrationStepService.updateStepStatus(step, HydrationStatus.PROCESSING);
 
-        AtomicBoolean headerProcessed = new AtomicBoolean(false);
-        AtomicReference<String[]> athenaColumnOrder = new AtomicReference<>();
-
-        Iterator<GetQueryResultsResponse> iterator = responses.getRight().iterator();
+        Iterator<GetQueryResultsResponse> iterator = responsePair.getRight().iterator();
         iterator.forEachRemaining(response -> {
             List<Row> rows = response.resultSet().rows();
             if (rows == null || rows.isEmpty()) {
@@ -186,10 +185,10 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
             }
 
             // On first batch, extract header and adjust rows
-            rows = processAndSkipHeaderOnce(rows, headerProcessed, athenaColumnOrder);
+            rows = service.processAndSkipHeaderOnce(rows, context);
 
             if (!rows.isEmpty()) {
-                hydrateDomainData(service, step, athenaColumnOrder.get(), rows);
+                hydrateDomainData(service, step, context.getAthenaColumnOrder(), rows);
             }
         });
     }
@@ -213,17 +212,6 @@ public class HydrationEngineServiceImpl implements HydrationEngineService {
                         dataRecord.getClass().getSimpleName(), dataRecord.getRecordId(), e.getMessage()));
             }
         }
-    }
-
-    private List<Row> processAndSkipHeaderOnce(List<Row> rows, AtomicBoolean headerProcessed,
-            AtomicReference<String[]> athenaColumnOrder) {
-        if (!headerProcessed.getAndSet(true)) {
-            Row headerRow = rows.getFirst();
-            athenaColumnOrder.set(headerRow.data().stream().map(Datum::varCharValue).toArray(String[]::new));
-
-            return rows.size() > 1 ? rows.subList(1, rows.size()) : Collections.emptyList();
-        }
-        return rows;
     }
 
     private boolean isThreadInterrupted() {

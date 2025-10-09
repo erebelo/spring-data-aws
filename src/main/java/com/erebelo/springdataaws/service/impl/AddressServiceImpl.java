@@ -6,7 +6,6 @@ import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_CONT
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_KEY_NAME;
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_METADATA_TITLE;
 
-import com.erebelo.springdataaws.domain.dto.AddressBundleDto;
 import com.erebelo.springdataaws.domain.dto.AddressContextDto;
 import com.erebelo.springdataaws.domain.dto.AddressDto;
 import com.erebelo.springdataaws.exception.model.BadRequestException;
@@ -14,26 +13,25 @@ import com.erebelo.springdataaws.query.QueryMapping;
 import com.erebelo.springdataaws.service.AddressService;
 import com.erebelo.springdataaws.service.AthenaService;
 import com.erebelo.springdataaws.service.S3Service;
-import com.erebelo.springdataaws.util.ParallelStreamContext;
+import com.erebelo.springdataaws.util.ObjectMapperUtil;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.services.athena.model.Datum;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 import software.amazon.awssdk.services.athena.model.Row;
 
@@ -52,175 +50,113 @@ public class AddressServiceImpl implements AddressService {
         this.asyncTaskExecutor = asyncTaskExecutor;
     }
 
-    private static final List<String> ADDRESS_FIELD_NAMES = Arrays.stream(AddressDto.class.getDeclaredFields())
-            .map(field -> field.getName().toLowerCase()).toList();
-    private static final List<String> ADDRESS_BUNDLE_FIELD_NAMES = Arrays
-            .stream(AddressBundleDto.class.getDeclaredFields()).map(field -> field.getName().toLowerCase()).toList();
-
-    public String addressFeedTrigger() {
+    @Override
+    public String triggerAddressFeed() {
         log.info("Triggering the addresses table feed in Athena");
-        AddressContextDto context = new AddressContextDto(null, 0, new ByteArrayOutputStream());
+        Pair<String, Iterable<GetQueryResultsResponse>> responsePair = athenaService
+                .fetchDataFromAthena(QueryMapping.getQueryByName(ADDRESS_QUERY_NAME));
+
+        AddressContextDto context = AddressContextDto.builder().headerProcessed(false).athenaColumnOrder(null)
+                .executionId(responsePair.getLeft()).headerWritten(false).processedRecords(0)
+                .byteArrayOutputStream(new ByteArrayOutputStream()).build();
         Map<String, String> loggingContext = MDC.getCopyOfContextMap(); // Capture the current logging context
+        log.info("Processing query results to feed addresses tables. Execution ID='{}'", context.getExecutionId());
+
+        CompletableFuture.runAsync(() -> {
+            if (loggingContext != null) {
+                MDC.setContextMap(loggingContext);
+            }
+            try {
+                processResults(responsePair.getRight(), context);
+            } finally {
+                MDC.clear();
+            }
+        }, asyncTaskExecutor);
+
+        return context.getExecutionId();
+    }
+
+    private void processResults(Iterable<GetQueryResultsResponse> results, AddressContextDto context) {
+        log.info("Starting to process address records");
+        long startTime = System.nanoTime();
+        List<Row> batchRows = new ArrayList<>();
 
         try {
-            String query = QueryMapping.getQueryByName(ADDRESS_QUERY_NAME);
-            context.setExecutionId(athenaService.submitAthenaQuery(query).getExecutionId());
-            log.info("Executing query to feed addresses tables. Execution ID='{}'", context.getExecutionId());
-
-            athenaService.waitForQueryToComplete(context.getExecutionId());
-            log.info("Query execution completed");
-
-            log.info("Fetching address query results");
-            Iterable<GetQueryResultsResponse> paginatedResults = athenaService
-                    .getQueryResults(context.getExecutionId());
-
-            log.info("Starting to process address records");
-            CompletableFuture.runAsync(() -> {
-                // Restore the logging context in the asynchronous task
-                if (loggingContext != null) {
-                    MDC.setContextMap(loggingContext);
+            Iterator<GetQueryResultsResponse> iterator = results.iterator();
+            iterator.forEachRemaining(response -> {
+                List<Row> rows = response.resultSet().rows();
+                if (rows == null || rows.isEmpty()) {
+                    return;
                 }
-                try {
-                    processResults(paginatedResults, context);
-                } finally {
-                    // Clear the logging context after the task completes
-                    MDC.clear();
-                }
-            }, asyncTaskExecutor);
 
-            return context.getExecutionId();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new BadRequestException(
-                    extractAndLogError("Thread was interrupted while triggering address feed", e, context), e);
+                // On first batch, extract header and adjust rows
+                rows = athenaService.processAndSkipHeaderOnce(rows, context);
+
+                if (!rows.isEmpty()) {
+                    batchRows.addAll(rows);
+                }
+
+                if (batchRows.size() >= (ADDRESS_ATHENA_BATCH_SIZE - 1) || !iterator.hasNext()) {
+                    processAndWriteRows(batchRows, context);
+                    batchRows.clear();
+                }
+            });
+
+            log.info("Uploading in-memory address csv file to S3 bucket");
+            uploadFileToS3(context);
+
+            long duration = Math.round((System.nanoTime() - startTime) / 1_000_000_000.0);
+            log.info("{} address records successfully processed in {} seconds", context.getProcessedRecords(),
+                    duration);
         } catch (Exception e) {
             throw new BadRequestException(extractAndLogError("Failed to trigger address feed", e, context), e);
         }
     }
 
-    private void processResults(Iterable<GetQueryResultsResponse> paginatedResults, AddressContextDto context) {
-        long startTime = System.nanoTime();
-        List<Row> batchRows = new ArrayList<>();
+    private void processAndWriteRows(List<Row> rows, AddressContextDto context) {
+        if (!rows.isEmpty()) {
+            List<AddressDto> addresses = athenaService.mapRowsToClass(context.getAthenaColumnOrder(), rows,
+                    AddressDto.class);
 
-        // Process initial results synchronously to include csv headers in the first row
-        Iterator<GetQueryResultsResponse> iterator = paginatedResults.iterator();
-        if (iterator.hasNext()) {
-            processAndWriteRows(iterator.next().resultSet().rows(), false, context);
-        }
+            if (!addresses.isEmpty()) {
+                if (!context.isHeaderWritten()) {
+                    // Convert column names to a map (key=value) for CSV writer
+                    List<Map<String, String>> headerMapList = List.of(Arrays.stream(context.getAthenaColumnOrder())
+                            .collect(Collectors.toMap(col -> col, col -> col)));
 
-        // Process all remaining results asynchronously in batch
-        // since maximum number of Athena query results (rows) is 1000
-        while (iterator.hasNext()) {
-            batchRows.addAll(iterator.next().resultSet().rows());
+                    writeMapListToCsv(headerMapList, context);
+                    context.setHeaderWritten(true);
+                }
 
-            if (batchRows.size() >= ADDRESS_ATHENA_BATCH_SIZE || !iterator.hasNext()) {
-                processAndWriteRows(batchRows, true, context);
-                batchRows.clear();
-            }
-        }
-
-        log.info("Uploading in-memory address csv file to S3 bucket");
-        uploadFileToS3(context);
-
-        long duration = Math.round((System.nanoTime() - startTime) / 1_000_000_000.0);
-        log.info("{} address records successfully processed in {} seconds", context.getProcessedRecords(), duration);
-    }
-
-    private void processAndWriteRows(List<Row> rows, boolean isAsynchronous, AddressContextDto context) {
-        if (rows != null && !rows.isEmpty()) {
-            List<Map<String, String>> addressMapList = isAsynchronous
-                    ? processRowsAsynchronously(rows, context)
-                    : processRowsSynchronously(rows, context);
-
-            if (!addressMapList.isEmpty()) {
-                writeAddressesToCsv(addressMapList, context);
+                writeMapListToCsv(convertToMapList(addresses), context);
                 log.info("Processed {} address record(s)", context.getProcessedRecords());
             }
         }
     }
 
-    private List<Map<String, String>> processRowsSynchronously(List<Row> rows, AddressContextDto context) {
-        // Directly process rows with csv headers in the first row
-        return rows.stream().map(row -> buildAddressMapFromRow(row, context)) // Exclude empty maps (failed rows)
-                .filter(addressMap -> !addressMap.isEmpty()).toList();
+    private <T> List<Map<String, String>> convertToMapList(List<T> objects) {
+        return objects.stream().map(obj -> {
+            Map<String, Object> map = ObjectMapperUtil.objectMapper.convertValue(obj, new TypeReference<>() {
+            });
+
+            // Convert all values to strings, replacing nulls with empty strings
+            return map.entrySet().stream().collect(
+                    Collectors.toMap(Map.Entry::getKey, e -> e.getValue() != null ? e.getValue().toString() : ""));
+        }).toList();
     }
 
-    private List<Map<String, String>> processRowsAsynchronously(List<Row> rows, AddressContextDto context) {
-        List<Map<String, String>> addressMapList = Collections.synchronizedList(new ArrayList<>());
-
-        ParallelStreamContext.forEach(rows.stream(), row -> {
-            Map<String, String> addressMap = buildAddressMapFromRow(row, context);
-
-            // Exclude empty maps (failed rows)
-            if (!addressMap.isEmpty()) {
-                addressMapList.add(addressMap);
-            }
-        });
-
-        return addressMapList;
-    }
-
-    private Map<String, String> buildAddressMapFromRow(Row row, AddressContextDto context) {
-        try {
-            List<Datum> allData = row.data();
-
-            // Dynamically creates a bundle address map object from Athena results
-            Map<String, String> bundleAddressMap = parseDataToBundleAddressMap(allData);
-
-            // Dynamically builds an address map object from bundle address map object
-            return buildAddressMap(bundleAddressMap);
-        } catch (Exception e) {
-            String recordId = "UNKNOWN";
-
-            try {
-                // Extract recordId from the row
-                Datum recordIdDatum = row.data().getFirst();
-                recordId = recordIdDatum.varCharValue() != null ? recordIdDatum.varCharValue().trim() : "UNKNOWN";
-            } catch (Exception ex) {
-                log.error("Failed to extract recordId from row: " + row, ex);
-            }
-
-            extractAndLogError("Error processing row (skipping it) with recordId=" + recordId, e, context);
-            return new LinkedHashMap<>();
-        }
-    }
-
-    private Map<String, String> parseDataToBundleAddressMap(List<Datum> allData) {
-        Map<String, String> bundleAddressMap = new LinkedHashMap<>();
-
-        for (int i = 0; i < ADDRESS_BUNDLE_FIELD_NAMES.size(); i++) {
-            String key = ADDRESS_BUNDLE_FIELD_NAMES.get(i);
-            String value = (i < allData.size() && allData.get(i) != null && allData.get(i).varCharValue() != null)
-                    ? allData.get(i).varCharValue().trim()
-                    : null;
-            bundleAddressMap.put(key, value);
-        }
-
-        return bundleAddressMap;
-    }
-
-    private Map<String, String> buildAddressMap(Map<String, String> bundleAddressMap) {
-        Map<String, String> addressMap = new LinkedHashMap<>();
-
-        for (String fieldName : ADDRESS_FIELD_NAMES) {
-            addressMap.put(fieldName, bundleAddressMap.get(fieldName));
-        }
-
-        return addressMap;
-    }
-
-    private void writeAddressesToCsv(List<Map<String, String>> addressMapList, AddressContextDto context) {
+    private void writeMapListToCsv(List<Map<String, String>> mapList, AddressContextDto context) {
         // Collect all csv rows
         StringBuilder csvContent = new StringBuilder();
-        for (Map<String, String> addressMap : addressMapList) {
-            csvContent.append(convertMapToCsvRow(addressMap)).append("\n");
+        for (Map<String, String> map : mapList) {
+            csvContent.append(convertMapToCsvRow(map)).append("\n");
         }
 
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(context.getByteArrayOutputStream()))) {
             writer.write(csvContent.toString());
-            context.setProcessedRecords(context.getProcessedRecords() + addressMapList.size());
+            context.setProcessedRecords(context.getProcessedRecords() + mapList.size());
         } catch (IOException e) {
-            throw new BadRequestException(extractAndLogError("Failed to write address data to file", e, context), e);
+            throw new BadRequestException(extractAndLogError("Failed to write data to file", e, context), e);
         }
     }
 
@@ -234,8 +170,7 @@ public class AddressServiceImpl implements AddressService {
             s3Service.multipartUpload(ADDRESS_S3_KEY_NAME, ADDRESS_S3_METADATA_TITLE, ADDRESS_S3_CONTENT_TYPE,
                     fileBytes);
         } catch (Exception e) {
-            throw new BadRequestException(
-                    extractAndLogError("Failed to upload in-memory address file to S3", e, context), e);
+            throw new BadRequestException(extractAndLogError("Failed to upload in-memory file to S3", e, context), e);
         }
     }
 

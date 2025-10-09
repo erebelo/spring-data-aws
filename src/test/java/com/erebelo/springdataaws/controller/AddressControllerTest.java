@@ -30,26 +30,26 @@ class AddressControllerTest {
 
     @Test
     void testAddressFeedTriggerSuccessful() throws Exception {
-        given(service.addressFeedTrigger()).willReturn(EXECUTION_ID);
+        given(service.triggerAddressFeed()).willReturn(EXECUTION_ID);
 
         mockMvc.perform(post(ADDRESSES_PATH + ADDRESSES_FEED_PATH).accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isAccepted()).andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.body")
                         .value("Address feed execution created successfully. Execution ID: '" + EXECUTION_ID + "'"));
 
-        verify(service).addressFeedTrigger();
+        verify(service).triggerAddressFeed();
     }
 
     @Test
     void testAddressFeedTriggerFailure() throws Exception {
         String errorMsg = "Error: 'Failed to trigger address feed'. Execution ID: "
                 + "'3e0135ac-d582-4cb2-b671-f74c945d13e2'. Root Cause: 'Unable to load credentials'.";
-        given(service.addressFeedTrigger()).willThrow(new BadRequestException(errorMsg));
+        given(service.triggerAddressFeed()).willThrow(new BadRequestException(errorMsg));
 
         mockMvc.perform(post(ADDRESSES_PATH + ADDRESSES_FEED_PATH).accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value(errorMsg)).andExpect(jsonPath("$.timestamp").isNotEmpty());
 
-        verify(service).addressFeedTrigger();
+        verify(service).triggerAddressFeed();
     }
 }

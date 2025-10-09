@@ -1,6 +1,5 @@
 package com.erebelo.springdataaws.hydration.service.impl;
 
-import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
 import com.erebelo.springdataaws.hydration.domain.dto.HydrationRunDto;
 import com.erebelo.springdataaws.hydration.domain.enumeration.HydrationStatus;
 import com.erebelo.springdataaws.hydration.domain.model.HydrationJob;
@@ -14,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import lombok.Getter;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.athena.model.Datum;
@@ -99,19 +99,10 @@ public class HydrationJobServiceImpl implements HydrationJobService {
     }
 
     private HydrationRunDto fetchHydrationRunFromAthena(Long runNumber) {
-        AthenaQueryDto athenaQuery = athenaService
-                .submitAthenaQuery(hydrationRunQueries.getHydrationRunsDataQuery(runNumber));
-        String executionId = athenaQuery.getExecutionId();
+        Pair<String, Iterable<GetQueryResultsResponse>> resultsPair = athenaService
+                .fetchDataFromAthena(hydrationRunQueries.getHydrationRunsDataQuery(runNumber));
 
-        try {
-            athenaService.waitForQueryToComplete(executionId);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Thread interrupted while waiting for Athena query to complete", e);
-        }
-
-        Iterator<GetQueryResultsResponse> iterator = athenaService.getQueryResults(executionId).iterator();
-
+        Iterator<GetQueryResultsResponse> iterator = resultsPair.getRight().iterator();
         if (iterator.hasNext()) {
             List<Row> rows = iterator.next().resultSet().rows();
 

@@ -2,7 +2,6 @@ package com.erebelo.springdataaws.hydration.domain.model;
 
 import com.erebelo.springdataaws.hydration.domain.dto.RecordDto;
 import java.time.LocalDate;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -13,7 +12,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Data
 @SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Document("advisor_contracts")
 public class ContractAdvisor extends RecordDto {

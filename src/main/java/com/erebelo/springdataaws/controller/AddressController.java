@@ -24,9 +24,9 @@ public class AddressController {
 
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PostMapping(value = ADDRESSES_FEED_PATH, produces = MediaType.APPLICATION_JSON_VALUE)
-    public BaseResponse addressFeedTrigger() {
+    public BaseResponse triggerAddressFeed() {
         log.info("POST {}", ADDRESSES_PATH + ADDRESSES_FEED_PATH);
-        return new BaseResponse(HttpStatus.OK.value(), "Address feed execution created successfully. "
-                + "Execution ID: '" + service.addressFeedTrigger() + "'");
+        return new BaseResponse(HttpStatus.OK.value(),
+                "Address feed successfully triggered with Execution ID: '" + service.triggerAddressFeed() + "'");
     }
 }

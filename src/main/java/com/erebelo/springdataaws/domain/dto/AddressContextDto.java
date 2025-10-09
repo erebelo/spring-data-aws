@@ -1,18 +1,19 @@
 package com.erebelo.springdataaws.domain.dto;
 
 import java.io.ByteArrayOutputStream;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
-public class AddressContextDto {
+@EqualsAndHashCode(callSuper = true)
+public class AddressContextDto extends AthenaContextDto {
 
     private String executionId;
+    private boolean headerWritten;
     private int processedRecords;
     private ByteArrayOutputStream byteArrayOutputStream; // In-memory output stream
 

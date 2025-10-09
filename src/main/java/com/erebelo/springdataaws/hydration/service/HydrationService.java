@@ -1,5 +1,6 @@
 package com.erebelo.springdataaws.hydration.service;
 
+import com.erebelo.springdataaws.domain.dto.AthenaContextDto;
 import com.erebelo.springdataaws.hydration.domain.dto.RecordDto;
 import com.erebelo.springdataaws.hydration.domain.enumeration.RecordTypeEnum;
 import com.erebelo.springdataaws.hydration.domain.model.HydrationStep;
@@ -17,6 +18,8 @@ public interface HydrationService<T extends RecordDto> {
     T hydrateDomainData(T domainData);
 
     Pair<String, Iterable<GetQueryResultsResponse>> fetchDataFromAthena(String query);
+
+    <U extends AthenaContextDto> List<Row> processAndSkipHeaderOnce(List<Row> rows, U context);
 
     List<T> mapRowsToDomainData(String[] columnNames, List<Row> rows);
 

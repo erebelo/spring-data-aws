@@ -1,6 +1,6 @@
 package com.erebelo.springdataaws.hydration.service;
 
-import com.erebelo.springdataaws.domain.dto.AthenaQueryDto;
+import com.erebelo.springdataaws.domain.dto.AthenaContextDto;
 import com.erebelo.springdataaws.hydration.domain.dto.RecordDto;
 import com.erebelo.springdataaws.hydration.domain.model.HydrationFailedRecord;
 import com.erebelo.springdataaws.hydration.domain.model.HydrationStep;
@@ -45,17 +45,12 @@ public abstract class AbstractHydrationService<T extends RecordDto> implements H
 
     @Override
     public Pair<String, Iterable<GetQueryResultsResponse>> fetchDataFromAthena(String query) {
-        AthenaQueryDto athenaQuery = athenaService.submitAthenaQuery(query);
-        String executionId = athenaQuery.getExecutionId();
+        return athenaService.fetchDataFromAthena(query);
+    }
 
-        try {
-            athenaService.waitForQueryToComplete(executionId);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("Thread interrupted while waiting for Athena query to complete", e);
-        }
-
-        return Pair.of(executionId, athenaService.getQueryResults(executionId));
+    @Override
+    public <U extends AthenaContextDto> List<Row> processAndSkipHeaderOnce(List<Row> rows, U context) {
+        return athenaService.processAndSkipHeaderOnce(rows, context);
     }
 
     @Override
