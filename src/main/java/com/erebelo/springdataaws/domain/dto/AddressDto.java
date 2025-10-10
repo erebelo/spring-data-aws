@@ -16,17 +16,11 @@ public class AddressDto extends RecordDto {
     @JsonProperty("address_id")
     private String addressId;
 
-    @JsonProperty("home_address_type")
-    private String homeAddressType;
-
     @JsonProperty("home_address_line_1")
     private String homeAddressLine1;
 
     @JsonProperty("home_address_line_2")
     private String homeAddressLine2;
-
-    @JsonProperty("home_zip_code")
-    private String homeZipCode;
 
     @JsonProperty("home_city")
     private String homeCity;
@@ -34,11 +28,11 @@ public class AddressDto extends RecordDto {
     @JsonProperty("home_state")
     private String homeState;
 
+    @JsonProperty("home_zip_code")
+    private String homeZipCode;
+
     @JsonProperty("home_country")
     private String homeCountry;
-
-    @JsonProperty("work_address_type")
-    private String workAddressType;
 
     @JsonProperty("work_address_line_1")
     private String workAddressLine1;
@@ -46,20 +40,17 @@ public class AddressDto extends RecordDto {
     @JsonProperty("work_address_line_2")
     private String workAddressLine2;
 
-    @JsonProperty("work_zip_code")
-    private String workZipCode;
-
     @JsonProperty("work_city")
     private String workCity;
 
     @JsonProperty("work_state")
     private String workState;
 
+    @JsonProperty("work_zip_code")
+    private String workZipCode;
+
     @JsonProperty("work_country")
     private String workCountry;
-
-    @JsonProperty("other_address_type")
-    private String otherAddressType;
 
     @JsonProperty("other_address_line_1")
     private String otherAddressLine1;
@@ -67,14 +58,14 @@ public class AddressDto extends RecordDto {
     @JsonProperty("other_address_line_2")
     private String otherAddressLine2;
 
-    @JsonProperty("other_zip_code")
-    private String otherZipCode;
-
     @JsonProperty("other_city")
     private String otherCity;
 
     @JsonProperty("other_state")
     private String otherState;
+
+    @JsonProperty("other_zip_code")
+    private String otherZipCode;
 
     @JsonProperty("other_country")
     private String otherCountry;

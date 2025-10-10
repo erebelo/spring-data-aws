@@ -13,7 +13,7 @@ num_records = 5000
 csv_file_name = 'legacy_addresses.csv'
 
 # Define the columns
-columns = ['id', 'addresstype', 'addressline1', 'addressline2', 'city', 'state', 'country', 'zipcode']
+columns = ['id', 'address_type', 'address_line_1', 'address_line_2', 'city', 'state', 'zip_code', 'country']
 
 # Define address types
 address_types = ['HOME', 'WORK', 'OTHER']
@@ -74,20 +74,20 @@ with open(csv_file_name, mode='w', newline='') as file:
         selected_types = random.sample(list(available_types), num_address_types)
 
         # Generate records for the selected address types
-        for addresstype in selected_types:
+        for address_type in selected_types:
             # Generate address data
-            addressline1 = fake.street_address()
-            addressline2 = fake.secondary_address() if random.choice([True, False]) else ''
+            address_line_1 = fake.street_address()
+            address_line_2 = fake.secondary_address() if random.choice([True, False]) else ''
             city = fake.city()
             state = fake.state_abbr()
-            country = 'US'
             zipcode = fake.zipcode()
+            country = 'US'
 
             # Write the row
-            writer.writerow([id, addresstype, addressline1, addressline2, city, state, country, zipcode])
+            writer.writerow([id, address_type, address_line_1, address_line_2, city, state, zipcode, country])
 
             # Add the selected address type to the used types for this ID
-            used_types.add(addresstype)
+            used_types.add(address_type)
             id_address_types[id] = used_types
 
             # Increment the total number of records
