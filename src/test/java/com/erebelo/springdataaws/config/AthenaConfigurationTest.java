@@ -14,9 +14,9 @@ import software.amazon.awssdk.services.athena.AthenaClient;
 
 class AthenaConfigurationTest {
 
-    private static final String ATHENA_DEFAULT_DB = "db_test";
-    private static final String DEFAULT_OUTPUT_BUCKET = "s3://test-output-bucket";
-    private static final String DEFAULT_WORKGROUP = "test_wg";
+    private static final String ATHENA_PRIMARY_DB = "primary_db_test";
+    private static final String PRIMARY_OUTPUT_BUCKET = "s3://test-primary-output-bucket";
+    private static final String PRIMARY_WORKGROUP = "test_primary_wg";
     private static final String ATHENA_HYDRATION_DB = "hydration_db_test";
     private static final String HYDRATION_OUTPUT_BUCKET = "s3://test-hydration-output-bucket";
     private static final String HYDRATION_WORKGROUP = "test_hydration_wg";
@@ -58,8 +58,8 @@ class AthenaConfigurationTest {
     void testDefaultAthenaServiceBeanSuccessful() {
         AthenaClient client = configuration.athenaClient(credentialsProvider, region);
 
-        AthenaServiceImpl service = configuration.defaultAthenaService(client, ATHENA_DEFAULT_DB, DEFAULT_OUTPUT_BUCKET,
-                DEFAULT_WORKGROUP);
+        AthenaServiceImpl service = configuration.defaultAthenaService(client, ATHENA_PRIMARY_DB, PRIMARY_OUTPUT_BUCKET,
+                PRIMARY_WORKGROUP);
 
         assertNotNull(service, "athenaService bean should not be null");
     }

@@ -34,7 +34,7 @@ class AddressControllerTest {
         mockMvc.perform(post(ADDRESSES_PATH + ADDRESSES_FEED_PATH).accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isAccepted()).andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.body")
-                        .value("Address feed execution created successfully. Execution ID: '" + EXECUTION_ID + "'"));
+                        .value("Address feed successfully triggered with Execution ID: '" + EXECUTION_ID + "'"));
 
         verify(service).triggerAddressFeed();
     }
@@ -46,7 +46,8 @@ class AddressControllerTest {
         given(service.triggerAddressFeed()).willThrow(new IllegalStateException(errorMsg));
 
         mockMvc.perform(post(ADDRESSES_PATH + ADDRESSES_FEED_PATH).accept(MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value("BAD_REQUEST"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value("INTERNAL_SERVER_ERROR"))
                 .andExpect(jsonPath("$.message").value(errorMsg)).andExpect(jsonPath("$.timestamp").isNotEmpty());
 
         verify(service).triggerAddressFeed();
