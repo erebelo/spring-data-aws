@@ -1,7 +1,6 @@
 package com.erebelo.springdataaws.exception;
 
 import com.erebelo.springdataaws.exception.model.AthenaQueryException;
-import com.erebelo.springdataaws.exception.model.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.ObjectUtils;
@@ -26,13 +25,6 @@ public class GlobalExceptionHandler {
     public @ResponseBody ExceptionResponse handleAthenaQueryException(AthenaQueryException exception) {
         log.error("AthenaQueryException thrown:", exception);
         return createExceptionResponse(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
-    }
-
-    @ExceptionHandler(BadRequestException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public @ResponseBody ExceptionResponse handleBadRequestException(BadRequestException exception) {
-        log.error("BadRequestException thrown:", exception);
-        return createExceptionResponse(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
     private ExceptionResponse createExceptionResponse(final HttpStatus httpStatus, final String message) {

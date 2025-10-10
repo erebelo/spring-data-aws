@@ -8,7 +8,6 @@ import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_META
 
 import com.erebelo.springdataaws.domain.dto.AddressContextDto;
 import com.erebelo.springdataaws.domain.dto.AddressDto;
-import com.erebelo.springdataaws.exception.model.BadRequestException;
 import com.erebelo.springdataaws.query.QueryMapping;
 import com.erebelo.springdataaws.service.AddressService;
 import com.erebelo.springdataaws.service.AthenaService;
@@ -39,12 +38,14 @@ import software.amazon.awssdk.services.athena.model.Row;
 @Service
 public class AddressServiceImpl implements AddressService {
 
+    private final QueryMapping queryMapping;
     private final AthenaService athenaService;
     private final S3Service s3Service;
     private final Executor asyncTaskExecutor;
 
-    public AddressServiceImpl(AthenaService athenaService, S3Service s3Service,
+    public AddressServiceImpl(QueryMapping queryMapping, AthenaService athenaService, S3Service s3Service,
             @Qualifier("asyncTaskExecutor") Executor asyncTaskExecutor) {
+        this.queryMapping = queryMapping;
         this.athenaService = athenaService;
         this.s3Service = s3Service;
         this.asyncTaskExecutor = asyncTaskExecutor;
@@ -54,12 +55,12 @@ public class AddressServiceImpl implements AddressService {
     public String triggerAddressFeed() {
         log.info("Triggering the addresses table feed in Athena");
         Pair<String, Iterable<GetQueryResultsResponse>> responsePair = athenaService
-                .fetchDataFromAthena(QueryMapping.getQueryByName(ADDRESS_QUERY_NAME));
+                .fetchDataFromAthena(queryMapping.getQueryByName(ADDRESS_QUERY_NAME));
 
         AddressContextDto context = AddressContextDto.builder().headerProcessed(false).athenaColumnOrder(null)
                 .executionId(responsePair.getLeft()).headerWritten(false).processedRecords(0)
                 .byteArrayOutputStream(new ByteArrayOutputStream()).build();
-        Map<String, String> loggingContext = MDC.getCopyOfContextMap(); // Capture the current logging context
+        Map<String, String> loggingContext = MDC.getCopyOfContextMap();
         log.info("Processing query results to feed addresses tables. Execution ID='{}'", context.getExecutionId());
 
         CompletableFuture.runAsync(() -> {
@@ -109,7 +110,7 @@ public class AddressServiceImpl implements AddressService {
             log.info("{} address records successfully processed in {} seconds", context.getProcessedRecords(),
                     duration);
         } catch (Exception e) {
-            throw new BadRequestException(extractAndLogError("Failed to trigger address feed", e, context), e);
+            throw new IllegalStateException(extractAndLogError("Failed to trigger address feed", e, context), e);
         }
     }
 
@@ -146,7 +147,6 @@ public class AddressServiceImpl implements AddressService {
     }
 
     private void writeMapListToCsv(List<Map<String, String>> mapList, AddressContextDto context) {
-        // Collect all csv rows
         StringBuilder csvContent = new StringBuilder();
         for (Map<String, String> map : mapList) {
             csvContent.append(convertMapToCsvRow(map)).append("\n");
@@ -156,7 +156,7 @@ public class AddressServiceImpl implements AddressService {
             writer.write(csvContent.toString());
             context.setProcessedRecords(context.getProcessedRecords() + mapList.size());
         } catch (IOException e) {
-            throw new BadRequestException(extractAndLogError("Failed to write data to file", e, context), e);
+            throw new IllegalStateException(extractAndLogError("Failed to write data to file", e, context), e);
         }
     }
 
@@ -165,13 +165,8 @@ public class AddressServiceImpl implements AddressService {
     }
 
     private void uploadFileToS3(AddressContextDto context) {
-        try {
-            byte[] fileBytes = context.getByteArrayOutputStream().toByteArray();
-            s3Service.multipartUpload(ADDRESS_S3_KEY_NAME, ADDRESS_S3_METADATA_TITLE, ADDRESS_S3_CONTENT_TYPE,
-                    fileBytes);
-        } catch (Exception e) {
-            throw new BadRequestException(extractAndLogError("Failed to upload in-memory file to S3", e, context), e);
-        }
+        byte[] fileBytes = context.getByteArrayOutputStream().toByteArray();
+        s3Service.multipartUpload(ADDRESS_S3_KEY_NAME, ADDRESS_S3_METADATA_TITLE, ADDRESS_S3_CONTENT_TYPE, fileBytes);
     }
 
     private String extractAndLogError(String errorMsg, Exception e, AddressContextDto context) {

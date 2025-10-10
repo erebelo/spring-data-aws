@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.erebelo.springdataaws.exception.model.AthenaQueryException;
-import com.erebelo.springdataaws.exception.model.BadRequestException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -48,16 +47,5 @@ class GlobalExceptionHandlerTest {
         assertNotNull(response);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
         assertEquals("Athena query failed", response.getMessage());
-    }
-
-    @Test
-    void testHandleBadRequestException() {
-        BadRequestException exception = new BadRequestException("Invalid request");
-
-        ExceptionResponse response = globalExceptionHandler.handleBadRequestException(exception);
-
-        assertNotNull(response);
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatus());
-        assertEquals("Invalid request", response.getMessage());
     }
 }

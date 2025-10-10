@@ -1,19 +1,32 @@
 package com.erebelo.springdataaws.domain.dto;
 
+import com.erebelo.springdataaws.hydration.domain.dto.RecordDto;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
-public class AddressDto {
+@EqualsAndHashCode(callSuper = true)
+public class AddressDto extends RecordDto {
 
-    @JsonProperty("addressid")
+    @JsonProperty("address_id")
     private String addressId;
+
+    @JsonProperty("home_address_type")
+    private String homeAddressType;
+
+    @JsonProperty("home_address_line_1")
+    private String homeAddressLine1;
+
+    @JsonProperty("home_address_line_2")
+    private String homeAddressLine2;
+
+    @JsonProperty("home_zip_code")
+    private String homeZipCode;
 
     @JsonProperty("home_city")
     private String homeCity;
@@ -24,6 +37,18 @@ public class AddressDto {
     @JsonProperty("home_country")
     private String homeCountry;
 
+    @JsonProperty("work_address_type")
+    private String workAddressType;
+
+    @JsonProperty("work_address_line_1")
+    private String workAddressLine1;
+
+    @JsonProperty("work_address_line_2")
+    private String workAddressLine2;
+
+    @JsonProperty("work_zip_code")
+    private String workZipCode;
+
     @JsonProperty("work_city")
     private String workCity;
 
@@ -32,6 +57,18 @@ public class AddressDto {
 
     @JsonProperty("work_country")
     private String workCountry;
+
+    @JsonProperty("other_address_type")
+    private String otherAddressType;
+
+    @JsonProperty("other_address_line_1")
+    private String otherAddressLine1;
+
+    @JsonProperty("other_address_line_2")
+    private String otherAddressLine2;
+
+    @JsonProperty("other_zip_code")
+    private String otherZipCode;
 
     @JsonProperty("other_city")
     private String otherCity;

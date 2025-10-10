@@ -1,28 +1,43 @@
 package com.erebelo.springdataaws.query;
 
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_QUERY_NAME;
-import static com.erebelo.springdataaws.query.AddressQuery.ADDRESS_QUERY;
+import static com.erebelo.springdataaws.query.AddressQueryTemplate.LEGACY_ADDRESSES_QUERY_TEMPLATE;
 
+import jakarta.annotation.PostConstruct;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import lombok.experimental.UtilityClass;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+import org.springframework.util.PropertyPlaceholderHelper;
 
-@UtilityClass
+@Getter
+@Setter
+@Component
+@ConfigurationProperties(prefix = "athena.default")
 public class QueryMapping {
 
-    // TODO pass db and table name as parameter
+    private String database;
+    private String legacyAddresses;
 
-    private static final Map<String, String> QUERIES;
+    private Map<String, String> queryTemplate = new HashMap<>();
+    private Map<String, Map<String, String>> queryTableProperties = new HashMap<>();
 
-    static {
-        Map<String, String> map = new HashMap<>();
-        map.put(ADDRESS_QUERY_NAME, ADDRESS_QUERY);
+    private final PropertyPlaceholderHelper placeholderHelper = new PropertyPlaceholderHelper("${", "}");
 
-        QUERIES = Collections.unmodifiableMap(map);
+    @PostConstruct
+    public void init() {
+        queryTemplate.put(ADDRESS_QUERY_NAME, LEGACY_ADDRESSES_QUERY_TEMPLATE);
+        queryTemplate = Collections.unmodifiableMap(queryTemplate);
+
+        queryTableProperties.put(ADDRESS_QUERY_NAME, Map.of("db", database, "legacyAddresses", legacyAddresses));
+        queryTableProperties = Collections.unmodifiableMap(queryTableProperties);
     }
 
-    public static String getQueryByName(String queryName) {
-        return QUERIES.get(queryName);
+    public String getQueryByName(String queryName) {
+        return placeholderHelper.replacePlaceholders(queryTemplate.get(queryName),
+                queryTableProperties.get(queryName)::get);
     }
 }

@@ -1,4 +1,4 @@
-package com.erebelo.springdataaws.hydration.repository.contract;
+package com.erebelo.springdataaws.hydration.query;
 
 import java.util.Map;
 import lombok.Getter;

@@ -1,6 +1,6 @@
 package com.erebelo.springdataaws.mock;
 
-import com.erebelo.springdataaws.domain.dto.AddressBundleDto;
+import com.erebelo.springdataaws.domain.dto.AddressDto;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,8 +48,7 @@ public class AddressMock {
 
     private static Row getHeaderRow() {
         return Row.builder()
-                .data(Arrays.stream(AddressBundleDto.class.getDeclaredFields())
-                        .map(field -> field.getName().toLowerCase())
+                .data(Arrays.stream(AddressDto.class.getDeclaredFields()).map(field -> field.getName().toLowerCase())
                         .map(fieldName -> Datum.builder().varCharValue(fieldName).build()).toList())
                 .build();
     }

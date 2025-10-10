@@ -9,7 +9,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.erebelo.springdataaws.exception.model.BadRequestException;
 import com.erebelo.springdataaws.service.AddressService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +28,7 @@ class AddressControllerTest {
     private AddressService service;
 
     @Test
-    void testAddressFeedTriggerSuccessful() throws Exception {
+    void testTriggerAddressFeedSuccessful() throws Exception {
         given(service.triggerAddressFeed()).willReturn(EXECUTION_ID);
 
         mockMvc.perform(post(ADDRESSES_PATH + ADDRESSES_FEED_PATH).accept(MediaType.APPLICATION_JSON_VALUE))
@@ -41,10 +40,10 @@ class AddressControllerTest {
     }
 
     @Test
-    void testAddressFeedTriggerFailure() throws Exception {
+    void testTriggerAddressFeedFailure() throws Exception {
         String errorMsg = "Error: 'Failed to trigger address feed'. Execution ID: "
                 + "'3e0135ac-d582-4cb2-b671-f74c945d13e2'. Root Cause: 'Unable to load credentials'.";
-        given(service.triggerAddressFeed()).willThrow(new BadRequestException(errorMsg));
+        given(service.triggerAddressFeed()).willThrow(new IllegalStateException(errorMsg));
 
         mockMvc.perform(post(ADDRESSES_PATH + ADDRESSES_FEED_PATH).accept(MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.status").value("BAD_REQUEST"))
