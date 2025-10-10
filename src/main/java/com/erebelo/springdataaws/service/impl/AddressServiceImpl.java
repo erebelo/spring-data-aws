@@ -21,6 +21,7 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -43,16 +44,16 @@ public class AddressServiceImpl implements AddressService {
     private final AthenaService athenaService;
     private final S3Service s3Service;
     private final Executor asyncTaskExecutor;
-    private final String addressesS3BucketFolder;
+    private final String s3AddressesPath;
 
     public AddressServiceImpl(QueryMapping queryMapping, AthenaService athenaService, S3Service s3Service,
             @Qualifier("asyncTaskExecutor") Executor asyncTaskExecutor,
-            @Value("${s3.bucket.folder.addresses}") String addressesS3BucketFolder) {
+            @Value("${s3.primary.addresses-path}") String s3AddressesPath) {
         this.queryMapping = queryMapping;
         this.athenaService = athenaService;
         this.s3Service = s3Service;
         this.asyncTaskExecutor = asyncTaskExecutor;
-        this.addressesS3BucketFolder = addressesS3BucketFolder;
+        this.s3AddressesPath = s3AddressesPath;
     }
 
     @Override
@@ -125,9 +126,15 @@ public class AddressServiceImpl implements AddressService {
 
             if (!addresses.isEmpty()) {
                 if (!context.isHeaderWritten()) {
-                    // Convert column names to a map (key=value) for CSV writer
+                    // Convert column names to a Map (key=value) for CSV writer, preserving order
                     List<Map<String, String>> headerMapList = List.of(Arrays.stream(context.getAthenaColumnOrder())
-                            .collect(Collectors.toMap(col -> col, col -> col)));
+                            .collect(Collectors.toMap(col -> col, // key
+                                    col -> col, // value
+                                    (u, v) -> u, // if a duplicate key appears, keep the existing value (u)
+                                    LinkedHashMap::new // preserve order
+                            )));
+                    // Remove record_id since it is write-only in AddressRecordDto
+                    headerMapList.getFirst().remove("record_id");
 
                     writeMapListToCsv(headerMapList, context);
                     context.setHeaderWritten(true);
@@ -141,12 +148,11 @@ public class AddressServiceImpl implements AddressService {
 
     private <T> List<Map<String, String>> convertToMapList(List<T> objects) {
         return objects.stream().map(obj -> {
-            Map<String, Object> map = ObjectMapperUtil.objectMapper.convertValue(obj, new TypeReference<>() {
+            LinkedHashMap<String, Object> map = ObjectMapperUtil.objectMapper.convertValue(obj, new TypeReference<>() {
             });
-
-            // Convert all values to strings, replacing nulls with empty strings
-            return map.entrySet().stream().collect(
-                    Collectors.toMap(Map.Entry::getKey, e -> e.getValue() != null ? e.getValue().toString() : ""));
+            Map<String, String> stringMap = new LinkedHashMap<>();
+            map.forEach((k, v) -> stringMap.put(k, v != null ? v.toString() : ""));
+            return stringMap; // type is Map, but order preserved
         }).toList();
     }
 
@@ -175,7 +181,7 @@ public class AddressServiceImpl implements AddressService {
 
     private void uploadFileToS3(AddressContextDto context) {
         byte[] fileBytes = context.getByteArrayOutputStream().toByteArray();
-        s3Service.multipartUpload(addressesS3BucketFolder + ADDRESS_CSV_FILE_NAME, ADDRESS_S3_METADATA_TITLE,
+        s3Service.multipartUpload(s3AddressesPath + ADDRESS_CSV_FILE_NAME, ADDRESS_S3_METADATA_TITLE,
                 ADDRESS_S3_CONTENT_TYPE, fileBytes);
     }
 

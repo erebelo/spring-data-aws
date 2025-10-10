@@ -15,12 +15,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8080/spring-data-aws/actuator/health",
-							"protocol": "http",
+							"raw": "{{base_url}}/spring-data-aws/actuator/health",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "8080",
 							"path": [
 								"spring-data-aws",
 								"actuator",
@@ -44,12 +42,10 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:8080/spring-data-aws/addresses/feed",
-							"protocol": "http",
+							"raw": "{{base_url}}/spring-data-aws/addresses/feed",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "8080",
 							"path": [
 								"spring-data-aws",
 								"addresses",
@@ -79,12 +75,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:8080/spring-data-aws/hydration/start",
-							"protocol": "http",
+							"raw": "{{base_url}}/spring-data-aws/hydration/start",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "8080",
 							"path": [
 								"spring-data-aws",
 								"hydration",
@@ -95,6 +89,36 @@
 					"response": []
 				}
 			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": ""
 		}
 	]
 }

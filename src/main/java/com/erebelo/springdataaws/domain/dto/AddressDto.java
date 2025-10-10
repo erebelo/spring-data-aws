@@ -1,6 +1,5 @@
 package com.erebelo.springdataaws.domain.dto;
 
-import com.erebelo.springdataaws.hydration.domain.dto.RecordDto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -11,7 +10,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class AddressDto extends RecordDto {
+public class AddressDto extends AddressRecordDto {
 
     @JsonProperty("address_id")
     private String addressId;
