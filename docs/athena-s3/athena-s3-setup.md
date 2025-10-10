@@ -50,7 +50,7 @@
 
 - In the **Athena** console, open the **Workgroups** section from the left-hand menu
 - Click **Add workgroup** and enter a name for the new workgroup
-- Under **Query result configuration**, select **Custom managed** and specify the S3 URI for the athena-result folder
+- Under **Query result configuration**, select **Custom managed** and specify the S3 URI for the `athena-result` folder
 
 ## [Athena] Run the `create_athena_tables.sql` script
 

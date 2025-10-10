@@ -10,7 +10,7 @@ fake = Faker('en_US')
 num_records = 5000
 
 # Define the CSV file name
-csv_file_name = 'legacy_addresses.csv'
+csv_file_name = 'legacy-addresses.csv'
 
 # Define the columns
 columns = ['id', 'address_type', 'address_line_1', 'address_line_2', 'city', 'state', 'zip_code', 'country']

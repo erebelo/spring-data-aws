@@ -8,7 +8,7 @@ WITH SERDEPROPERTIES (
 )
 STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-LOCATION 's3://spring-data-aws-bucket/hydration/hydration_runs/'
+LOCATION 's3://spring-data-aws-bucket/hydration/hydration-runs/'
 TBLPROPERTIES (
     'classification' = 'csv',
     'skip.header.line.count' = '1'
@@ -29,7 +29,7 @@ WITH SERDEPROPERTIES (
 )
 STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-LOCATION 's3://spring-data-aws-bucket/hydration/advisor_contracts/'
+LOCATION 's3://spring-data-aws-bucket/hydration/advisor-contracts/'
 TBLPROPERTIES (
     'classification' = 'csv',
     'skip.header.line.count' = '1'
@@ -50,7 +50,7 @@ WITH SERDEPROPERTIES (
 )
 STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-LOCATION 's3://spring-data-aws-bucket/hydration/firm_contracts/'
+LOCATION 's3://spring-data-aws-bucket/hydration/firm-contracts/'
 TBLPROPERTIES (
     'classification' = 'csv',
     'skip.header.line.count' = '1'
@@ -72,7 +72,7 @@ WITH SERDEPROPERTIES (
 )
 STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-LOCATION 's3://spring-data-aws-bucket/legacy-addresses/'
+LOCATION 's3://spring-data-aws-bucket/primary/legacy-addresses/'
 TBLPROPERTIES (
     'classification' = 'csv',
     'skip.header.line.count' = '1'
@@ -105,7 +105,7 @@ WITH SERDEPROPERTIES (
 )
 STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-LOCATION 's3://spring-data-aws-bucket/addresses/'
+LOCATION 's3://spring-data-aws-bucket/primary/addresses/'
 TBLPROPERTIES (
     'classification' = 'csv',
     'skip.header.line.count' = '1'

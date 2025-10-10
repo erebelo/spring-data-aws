@@ -25,9 +25,9 @@ public class AthenaConfiguration {
     @Bean
     @Primary // Default Athena service
     public AthenaServiceImpl defaultAthenaService(AthenaClient athenaClient,
-            @Value("${athena.default.database}") String athenaDatabase,
-            @Value("${s3.default.output.bucket.url}") String outputBucketUrl,
-            @Value("${athena.default.workgroup}") String workgroup) {
+            @Value("${athena.primary.database}") String athenaDatabase,
+            @Value("${s3.primary.output.bucket.url}") String outputBucketUrl,
+            @Value("${athena.primary.workgroup}") String workgroup) {
         return new AthenaServiceImpl(athenaClient, athenaDatabase, outputBucketUrl, workgroup);
     }
 

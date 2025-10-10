@@ -1,9 +1,9 @@
 package com.erebelo.springdataaws.service.impl;
 
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_ATHENA_BATCH_SIZE;
+import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_CSV_FILE_NAME;
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_QUERY_NAME;
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_CONTENT_TYPE;
-import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_KEY_NAME;
 import static com.erebelo.springdataaws.constant.AddressConstant.ADDRESS_S3_METADATA_TITLE;
 
 import com.erebelo.springdataaws.domain.dto.AddressContextDto;
@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
 import software.amazon.awssdk.services.athena.model.Row;
@@ -42,13 +43,16 @@ public class AddressServiceImpl implements AddressService {
     private final AthenaService athenaService;
     private final S3Service s3Service;
     private final Executor asyncTaskExecutor;
+    private final String addressesS3BucketFolder;
 
     public AddressServiceImpl(QueryMapping queryMapping, AthenaService athenaService, S3Service s3Service,
-            @Qualifier("asyncTaskExecutor") Executor asyncTaskExecutor) {
+            @Qualifier("asyncTaskExecutor") Executor asyncTaskExecutor,
+            @Value("${s3.bucket.folder.addresses}") String addressesS3BucketFolder) {
         this.queryMapping = queryMapping;
         this.athenaService = athenaService;
         this.s3Service = s3Service;
         this.asyncTaskExecutor = asyncTaskExecutor;
+        this.addressesS3BucketFolder = addressesS3BucketFolder;
     }
 
     @Override
@@ -146,6 +150,11 @@ public class AddressServiceImpl implements AddressService {
         }).toList();
     }
 
+    /*
+     * Writes the given list of maps as CSV rows directly into the context’s
+     * in-memory ByteArrayOutputStream. Each map is converted to a comma-separated
+     * row, and the processed record count is updated after writing.
+     */
     private void writeMapListToCsv(List<Map<String, String>> mapList, AddressContextDto context) {
         StringBuilder csvContent = new StringBuilder();
         for (Map<String, String> map : mapList) {
@@ -166,7 +175,8 @@ public class AddressServiceImpl implements AddressService {
 
     private void uploadFileToS3(AddressContextDto context) {
         byte[] fileBytes = context.getByteArrayOutputStream().toByteArray();
-        s3Service.multipartUpload(ADDRESS_S3_KEY_NAME, ADDRESS_S3_METADATA_TITLE, ADDRESS_S3_CONTENT_TYPE, fileBytes);
+        s3Service.multipartUpload(addressesS3BucketFolder + ADDRESS_CSV_FILE_NAME, ADDRESS_S3_METADATA_TITLE,
+                ADDRESS_S3_CONTENT_TYPE, fileBytes);
     }
 
     private String extractAndLogError(String errorMsg, Exception e, AddressContextDto context) {
