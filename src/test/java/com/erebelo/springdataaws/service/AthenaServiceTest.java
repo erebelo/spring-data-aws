@@ -186,8 +186,8 @@ class AthenaServiceTest {
 
     @Test
     void testFetchDataFromAthenaQueryRetriesUntilSuccess() {
-        StartQueryExecutionResponse mockStartResponse = StartQueryExecutionResponse.builder().queryExecutionId("12345")
-                .build();
+        StartQueryExecutionResponse mockStartResponse = StartQueryExecutionResponse.builder()
+                .queryExecutionId(EXECUTION_ID).build();
         given(athenaClient.startQueryExecution(any(StartQueryExecutionRequest.class))).willReturn(mockStartResponse);
 
         GetQueryExecutionResponse runningResponse = GetQueryExecutionResponse.builder()

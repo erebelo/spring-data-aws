@@ -180,6 +180,11 @@ public class AddressServiceImpl implements AddressService {
     }
 
     private void uploadFileToS3(AddressContextDto context) {
+        if (context.getByteArrayOutputStream().size() == 0) {
+            log.info("Skipping S3 upload: no data found in output stream");
+            return;
+        }
+
         byte[] fileBytes = context.getByteArrayOutputStream().toByteArray();
         s3Service.multipartUpload(s3AddressesPath + ADDRESS_CSV_FILE_NAME, ADDRESS_S3_METADATA_TITLE,
                 ADDRESS_S3_CONTENT_TYPE, fileBytes);
