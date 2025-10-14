@@ -60,7 +60,7 @@ class AthenaServiceTest {
     private AthenaClient athenaClient;
 
     private static final String QUERY = "SELECT * FROM test_table";
-    private static final String EXECUTION_ID = "12345";
+    private static final String EXECUTION_ID = "3e0135ac-d582-4cb2-b671-f74c945d13e2";
 
     @BeforeEach
     void setUp() {

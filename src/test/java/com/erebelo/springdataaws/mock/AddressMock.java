@@ -6,13 +6,24 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
 import software.amazon.awssdk.services.athena.model.Datum;
+import software.amazon.awssdk.services.athena.model.GetQueryResultsResponse;
+import software.amazon.awssdk.services.athena.model.ResultSet;
 import software.amazon.awssdk.services.athena.model.Row;
 
 @UtilityClass
 public class AddressMock {
 
+    public static final String ADDRESSES_QUERY_TEMPLATE = "SELECT * FROM test_table";
     public static final String EXECUTION_ID = "3e0135ac-d582-4cb2-b671-f74c945d13e2";
+
+    public static Pair<String, Iterable<GetQueryResultsResponse>> getResponsePair() {
+        Iterable<GetQueryResultsResponse> results = List.of(
+                GetQueryResultsResponse.builder().resultSet(ResultSet.builder().rows(getRowsChunk1()).build()).build(),
+                GetQueryResultsResponse.builder().resultSet(ResultSet.builder().rows(getRowsChunk2()).build()).build());
+        return Pair.of(EXECUTION_ID, results);
+    }
 
     public static List<Row> getRowsChunk1() {
         List<Row> rows = new ArrayList<>();
