@@ -28,7 +28,6 @@ import software.amazon.awssdk.services.athena.model.QueryExecutionState;
 import software.amazon.awssdk.services.athena.model.Row;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionRequest;
 import software.amazon.awssdk.services.athena.model.StartQueryExecutionResponse;
-import software.amazon.awssdk.services.athena.paginators.GetQueryResultsIterable;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -153,7 +152,7 @@ public class AthenaServiceImpl implements AthenaService {
             } else if (queryState.equals(QueryExecutionState.SUCCEEDED.toString())) {
                 isQueryStillRunning = false;
             } else {
-                // Sleep an amount of time before retrying again.
+                // Sleep an amount of time before retrying again
                 Thread.sleep(300);
             }
             log.info("The current status of the query is: {}", queryState);
@@ -169,28 +168,6 @@ public class AthenaServiceImpl implements AthenaService {
         } catch (AthenaException e) {
             log.info("Failed to get query results: {}", e.getMessage());
             throw new AthenaQueryException("Failed to get query results", e);
-        }
-    }
-
-    private List<String> getQueryResultsAsStrings(String queryExecutionId) {
-        try {
-            GetQueryResultsIterable getQueryResultsIterable = (GetQueryResultsIterable) getQueryResults(
-                    queryExecutionId);
-
-            List<String> queryResults = new ArrayList<>();
-            for (GetQueryResultsResponse result : getQueryResultsIterable) {
-                List<Row> results = result.resultSet().rows();
-
-                results.forEach(row -> {
-                    List<Datum> allData = row.data();
-                    allData.forEach(data -> queryResults.add(data.varCharValue()));
-                });
-            }
-
-            return queryResults;
-        } catch (AthenaQueryException e) {
-            log.info(e.getMessage());
-            throw new AthenaQueryException(e.getMessage(), e);
         }
     }
 
