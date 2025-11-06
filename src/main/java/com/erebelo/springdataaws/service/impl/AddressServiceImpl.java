@@ -46,8 +46,8 @@ public class AddressServiceImpl implements AddressService {
     private final String s3AddressesPath;
 
     public AddressServiceImpl(QueryMapping queryMapping, AthenaService athenaService, S3Service s3Service,
-            @Qualifier("defaultAthenaService") Executor asyncTaskExecutor,
-            @Value("${s3.primary.addresses-path}") String s3AddressesPath) {
+            @Qualifier("defaultAsyncTaskExecutor") Executor asyncTaskExecutor,
+            @Value("${s3.addresses-path}") String s3AddressesPath) {
         this.queryMapping = queryMapping;
         this.athenaService = athenaService;
         this.s3Service = s3Service;

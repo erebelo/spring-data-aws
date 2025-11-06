@@ -16,7 +16,7 @@ import org.springframework.util.PropertyPlaceholderHelper;
 @Getter
 @Setter
 @Component
-@ConfigurationProperties(prefix = "athena.primary")
+@ConfigurationProperties(prefix = "athena")
 public class QueryMapping {
 
     private String database;
