@@ -12,7 +12,7 @@
     <artifactId>spring-data-aws</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>spring-data-aws</name>
-    <description>Java project using Spring Boot to interact with AWS services, including Athena for querying data and S3
+    <description>Java project built with Spring Boot, integrating with AWS services such as Athena for querying and S3
         for storage
     </description>
 
@@ -33,13 +33,10 @@
     </properties>
 
     <dependencies>
+        <!--Spring starts here-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -51,6 +48,14 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--Spring ends here-->
+
+        <!-- AWS starts here-->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>athena</artifactId>
@@ -66,6 +71,9 @@
             <artifactId>apache-client</artifactId>
             <version>${awssdk.version}</version>
         </dependency>
+        <!-- AWS ends here-->
+
+        <!-- Utilities starts here-->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
@@ -80,11 +88,7 @@
             <artifactId>mapstruct</artifactId>
             <version>${mapstruct.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
+        <!-- Utilities ends here-->
     </dependencies>
 
     <build>

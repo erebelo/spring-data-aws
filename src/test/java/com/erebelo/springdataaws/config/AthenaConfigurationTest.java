@@ -14,12 +14,9 @@ import software.amazon.awssdk.services.athena.AthenaClient;
 
 class AthenaConfigurationTest {
 
-    private static final String ATHENA_PRIMARY_DB = "primary_db_test";
-    private static final String PRIMARY_OUTPUT_BUCKET = "s3://test-primary-output-bucket";
-    private static final String PRIMARY_WORKGROUP = "test_primary_wg";
-    private static final String ATHENA_HYDRATION_DB = "hydration_db_test";
-    private static final String HYDRATION_OUTPUT_BUCKET = "s3://test-hydration-output-bucket";
-    private static final String HYDRATION_WORKGROUP = "test_hydration_wg";
+    private static final String ATHENA_DB = "_db_test";
+    private static final String OUTPUT_BUCKET = "s3://test-output-bucket";
+    private static final String WORKGROUP = "test_wg";
 
     private AthenaConfiguration configuration;
     private AwsCredentialsProvider credentialsProvider;
@@ -58,19 +55,8 @@ class AthenaConfigurationTest {
     void testDefaultAthenaServiceBeanSuccessful() {
         AthenaClient client = configuration.athenaClient(credentialsProvider, region);
 
-        AthenaServiceImpl service = configuration.defaultAthenaService(client, ATHENA_PRIMARY_DB, PRIMARY_OUTPUT_BUCKET,
-                PRIMARY_WORKGROUP);
+        AthenaServiceImpl service = configuration.defaultAthenaService(client, ATHENA_DB, OUTPUT_BUCKET, WORKGROUP);
 
         assertNotNull(service, "athenaService bean should not be null");
-    }
-
-    @Test
-    void testHydrationAthenaServiceBeanSuccessful() {
-        AthenaClient client = configuration.athenaClient(credentialsProvider, region);
-
-        AthenaServiceImpl service = configuration.hydrationAthenaService(client, ATHENA_HYDRATION_DB,
-                HYDRATION_OUTPUT_BUCKET, HYDRATION_WORKGROUP);
-
-        assertNotNull(service, "hydrationAthenaService bean should not be null");
     }
 }

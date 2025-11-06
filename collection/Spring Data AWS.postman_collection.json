@@ -56,39 +56,6 @@
 					"response": []
 				}
 			]
-		},
-		{
-			"name": "Hydration",
-			"item": [
-				{
-					"name": "POST Trigger Hydration",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n    \"recordTypes\": [\r\n        \"CONTRACT_ADVISOR\",\r\n        \"CONTRACT_FIRM\"\r\n    ]\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/spring-data-aws/hydration/start",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"spring-data-aws",
-								"hydration",
-								"start"
-							]
-						}
-					},
-					"response": []
-				}
-			]
 		}
 	],
 	"event": [

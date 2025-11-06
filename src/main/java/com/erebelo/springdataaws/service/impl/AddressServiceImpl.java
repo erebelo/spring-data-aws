@@ -29,7 +29,6 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -47,7 +46,7 @@ public class AddressServiceImpl implements AddressService {
     private final String s3AddressesPath;
 
     public AddressServiceImpl(QueryMapping queryMapping, AthenaService athenaService, S3Service s3Service,
-            @Qualifier("asyncTaskExecutor") Executor asyncTaskExecutor,
+            @Qualifier("defaultAthenaService") Executor asyncTaskExecutor,
             @Value("${s3.primary.addresses-path}") String s3AddressesPath) {
         this.queryMapping = queryMapping;
         this.athenaService = athenaService;
@@ -65,19 +64,13 @@ public class AddressServiceImpl implements AddressService {
         AddressContextDto context = AddressContextDto.builder().headerProcessed(false).athenaColumnOrder(null)
                 .executionId(responsePair.getLeft()).headerWritten(false).processedRecords(0)
                 .byteArrayOutputStream(new ByteArrayOutputStream()).build();
-        Map<String, String> loggingContext = MDC.getCopyOfContextMap();
         log.info("Processing query results to feed addresses tables. Execution ID='{}'", context.getExecutionId());
 
-        CompletableFuture.runAsync(() -> {
-            if (loggingContext != null) {
-                MDC.setContextMap(loggingContext);
-            }
-            try {
-                processResults(responsePair.getRight(), context);
-            } finally {
-                MDC.clear();
-            }
-        }, asyncTaskExecutor);
+        CompletableFuture.runAsync(() -> processResults(responsePair.getRight(), context), asyncTaskExecutor)
+                .exceptionally(ex -> {
+                    log.error(ex.getMessage(), ex);
+                    return null;
+                });
 
         return context.getExecutionId();
     }

@@ -13,6 +13,7 @@
   - `AmazonAthenaFullAccess`  
     _(Skip extra policies to avoid unnecessary permissions; you can add them later if needed.)_
 
+- Select the created group
 - Finish by clicking **Create user**
 
 ---
@@ -36,20 +37,20 @@
   ```properties
   aws.access-key=${AWS_ACCESS_KEY_ID}
   aws.secret-key=${AWS_SECRET_ACCESS_KEY}
-  aws.region=${AWS_REGION:us-east-1}
+  aws.region=${AWS_REGION:us-east-2}
   ```
 
 ## [S3] Create S3 Bucket
 
 - Open the **Amazon S3** console
-- Create the S3 Bucket
-- Create a folder named `athena-result` inside the Bucket
+- Create the `spring-data-aws-bucket` S3 Bucket
+- Create a folder named `athena-results` inside the Bucket
 - Create additional folders for each Athena table as needed
 
 ## [Athena] Create Workgroup
 
 - In the **Athena** console, open the **Workgroups** section from the left-hand menu
-- Click **Add workgroup** and enter a name for the new workgroup
+- Click **Add workgroup** and enter a name (`sd_aws_wg`) for the new workgroup
 - Under **Query result configuration**, select **Custom managed** and specify the S3 URI for the `athena-result` folder
 
 ## [Athena] Run the `create_athena_tables.sql` script
@@ -58,8 +59,7 @@
 - Create a Database (if not already created):
 
   ```sql
-  CREATE DATABASE IF NOT EXISTS spring_data_aws_db;
-  CREATE DATABASE IF NOT EXISTS spring_data_aws_hydration_db;
+  CREATE DATABASE IF NOT EXISTS sd_aws_db;
   ```
 
 - Run the `create_athena_tables.sql` script
@@ -83,5 +83,5 @@
 Query the table:
 
 ```sql
-SELECT * FROM spring_data_aws_db.<TABLE_NAME> LIMIT 10;
+SELECT * FROM sd_aws_db.<TABLE_NAME> LIMIT 10;
 ```
