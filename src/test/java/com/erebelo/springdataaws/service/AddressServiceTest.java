@@ -22,7 +22,6 @@ import static org.mockito.BDDMockito.willReturn;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -47,11 +46,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
-import org.slf4j.MDC;
 import org.springframework.test.util.ReflectionTestUtils;
 import software.amazon.awssdk.services.athena.AthenaClient;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -100,37 +97,28 @@ class AddressServiceTest {
 
         willDoNothing().given(s3Service).multipartUpload(anyString(), anyString(), anyString(), any(byte[].class));
 
-        Map<String, String> loggingContext = Map.of("key", "value");
+        String response = service.triggerAddressFeed();
 
-        try (MockedStatic<MDC> mockedMdc = mockStatic(MDC.class)) {
-            mockedMdc.when(MDC::getCopyOfContextMap).thenReturn(loggingContext);
+        assertEquals(EXECUTION_ID, response);
 
-            String response = service.triggerAddressFeed();
+        verify(queryMapping).getQueryByName(anyString());
+        verify(athenaService).fetchDataFromAthena(anyString());
+        verify(asyncTaskExecutor).execute(any(Runnable.class));
+        verify(athenaService, atLeastOnce()).processAndSkipHeaderOnce(anyList(), any(AddressContextDto.class));
+        verify(athenaService, atLeastOnce()).mapRowsToClass(any(String[].class), anyList(), eq(AddressDto.class));
 
-            assertEquals(EXECUTION_ID, response);
+        ArgumentCaptor<byte[]> bytesCaptor = ArgumentCaptor.forClass(byte[].class);
+        verify(s3Service).multipartUpload(startsWith("test/addresses/"), anyString(), anyString(),
+                bytesCaptor.capture());
 
-            verify(queryMapping).getQueryByName(anyString());
-            verify(athenaService).fetchDataFromAthena(anyString());
-            verify(asyncTaskExecutor).execute(any(Runnable.class));
-            verify(athenaService, atLeastOnce()).processAndSkipHeaderOnce(anyList(), any(AddressContextDto.class));
-            verify(athenaService, atLeastOnce()).mapRowsToClass(any(String[].class), anyList(), eq(AddressDto.class));
+        String csv = new String(bytesCaptor.getValue(), StandardCharsets.UTF_8);
 
-            ArgumentCaptor<byte[]> bytesCaptor = ArgumentCaptor.forClass(byte[].class);
-            verify(s3Service).multipartUpload(startsWith("test/addresses/"), anyString(), anyString(),
-                    bytesCaptor.capture());
-
-            String csv = new String(bytesCaptor.getValue(), StandardCharsets.UTF_8);
-
-            // Verify CSV content
-            assertEquals(2000, csv.lines().count(), "Header + 2000 records should be present");
-            assertFalse(csv.contains("record_id"), "CSV should not contain record_id column");
-            assertTrue(csv.contains("address_id"), "CSV should contain header 'address_id'");
-            assertTrue(csv.contains("New York"), "CSV should contain city data from mock");
-            assertTrue(bytesCaptor.getValue().length > 100, "Uploaded CSV should not be empty");
-
-            mockedMdc.verify(() -> MDC.setContextMap(loggingContext));
-            mockedMdc.verify(MDC::clear);
-        }
+        // Verify CSV content
+        assertEquals(2000, csv.lines().count(), "Header + 2000 records should be present");
+        assertFalse(csv.contains("record_id"), "CSV should not contain record_id column");
+        assertTrue(csv.contains("address_id"), "CSV should contain header 'address_id'");
+        assertTrue(csv.contains("New York"), "CSV should contain city data from mock");
+        assertTrue(bytesCaptor.getValue().length > 100, "Uploaded CSV should not be empty");
     }
 
     @Test
@@ -146,25 +134,16 @@ class AddressServiceTest {
             return null;
         }).given(asyncTaskExecutor).execute(any(Runnable.class));
 
-        Map<String, String> loggingContext = Map.of("key", "value");
+        String response = service.triggerAddressFeed();
 
-        try (MockedStatic<MDC> mockedMdc = mockStatic(MDC.class)) {
-            mockedMdc.when(MDC::getCopyOfContextMap).thenReturn(loggingContext);
+        assertEquals(EXECUTION_ID, response);
 
-            String response = service.triggerAddressFeed();
-
-            assertEquals(EXECUTION_ID, response);
-
-            verify(queryMapping).getQueryByName(anyString());
-            verify(athenaService).fetchDataFromAthena(anyString());
-            verify(asyncTaskExecutor).execute(any(Runnable.class));
-            verify(athenaService, never()).processAndSkipHeaderOnce(anyList(), any(AddressContextDto.class));
-            verify(athenaService, never()).mapRowsToClass(any(String[].class), anyList(), eq(AddressDto.class));
-            verify(s3Service, never()).multipartUpload(anyString(), anyString(), anyString(), any(byte[].class));
-
-            mockedMdc.verify(() -> MDC.setContextMap(loggingContext));
-            mockedMdc.verify(MDC::clear);
-        }
+        verify(queryMapping).getQueryByName(anyString());
+        verify(athenaService).fetchDataFromAthena(anyString());
+        verify(asyncTaskExecutor).execute(any(Runnable.class));
+        verify(athenaService, never()).processAndSkipHeaderOnce(anyList(), any(AddressContextDto.class));
+        verify(athenaService, never()).mapRowsToClass(any(String[].class), anyList(), eq(AddressDto.class));
+        verify(s3Service, never()).multipartUpload(anyString(), anyString(), anyString(), any(byte[].class));
     }
 
     @Test
@@ -184,25 +163,16 @@ class AddressServiceTest {
             throw new RuntimeException("Simulated failure");
         }).given(athenaService).processAndSkipHeaderOnce(anyList(), any(AddressContextDto.class));
 
-        Map<String, String> loggingContext = Map.of("key", "value");
+        String response = service.triggerAddressFeed();
 
-        try (MockedStatic<MDC> mockedMdc = mockStatic(MDC.class)) {
-            mockedMdc.when(MDC::getCopyOfContextMap).thenReturn(loggingContext);
+        assertEquals(EXECUTION_ID, response);
 
-            String response = service.triggerAddressFeed();
-
-            assertEquals(EXECUTION_ID, response);
-
-            verify(queryMapping).getQueryByName(anyString());
-            verify(athenaService).fetchDataFromAthena(anyString());
-            verify(asyncTaskExecutor).execute(any(Runnable.class));
-            verify(athenaService).processAndSkipHeaderOnce(anyList(), any(AddressContextDto.class));
-            verify(athenaService, never()).mapRowsToClass(any(String[].class), anyList(), eq(AddressDto.class));
-            verify(s3Service, never()).multipartUpload(anyString(), anyString(), anyString(), any(byte[].class));
-
-            mockedMdc.verify(() -> MDC.setContextMap(loggingContext));
-            mockedMdc.verify(MDC::clear);
-        }
+        verify(queryMapping).getQueryByName(anyString());
+        verify(athenaService).fetchDataFromAthena(anyString());
+        verify(asyncTaskExecutor).execute(any(Runnable.class));
+        verify(athenaService).processAndSkipHeaderOnce(anyList(), any(AddressContextDto.class));
+        verify(athenaService, never()).mapRowsToClass(any(String[].class), anyList(), eq(AddressDto.class));
+        verify(s3Service, never()).multipartUpload(anyString(), anyString(), anyString(), any(byte[].class));
     }
 
     @Test

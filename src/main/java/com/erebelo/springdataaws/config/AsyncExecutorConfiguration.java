@@ -13,7 +13,7 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
 @Configuration
-public class AsyncExecutorConfig {
+public class AsyncExecutorConfiguration {
 
     /*
      * Dedicated executor for manual asynchronous hydration triggered via
