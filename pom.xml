@@ -12,8 +12,8 @@
     <artifactId>spring-data-aws</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>spring-data-aws</name>
-    <description>Java project built with Spring Boot, integrating with AWS services such as Athena for querying and S3
-        for storage
+    <description>Java project built with Spring Boot to extract and transform data by integrating with AWS services such as Amazon Athena for querying
+        and Amazon S3 for CSV-based data storage
     </description>
 
     <repositories>
